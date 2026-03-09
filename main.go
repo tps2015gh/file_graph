@@ -63,6 +63,7 @@ func main() {
 	http.HandleFunc("/", serveIndex)
 	http.HandleFunc("/api/scan", handleScan)
 	http.HandleFunc("/api/open", handleOpen)
+	http.HandleFunc("/api/log", handleClientLog)
 	http.HandleFunc("/api/shutdown", handleShutdown)
 
 	port := "8080"
@@ -71,6 +72,14 @@ func main() {
 		appLogger.Printf("Server: http://localhost:%s\n", port)
 	}
 	log.Fatal(http.ListenAndServe(":"+port, nil))
+}
+
+func handleClientLog(w http.ResponseWriter, r *http.Request) {
+	msg := r.URL.Query().Get("msg")
+	if msg != "" && appLogger != nil {
+		appLogger.Printf("UI: %s\n", msg)
+	}
+	w.WriteHeader(http.StatusOK)
 }
 
 func handleShutdown(w http.ResponseWriter, r *http.Request) {

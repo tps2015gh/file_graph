@@ -172,6 +172,12 @@
         const relatedBody = document.getElementById('related-body');
         const status = document.getElementById('status');
 
+        async function uiLog(msg) {
+            try {
+                await fetch(`/api/log?msg=${encodeURIComponent(msg)}`);
+            } catch (e) {}
+        }
+
         let nodes = [];
         let links = [];
         let width, height;
@@ -373,6 +379,7 @@
         }
 
         async function openPath(path) {
+            uiLog(`Click Open: ${path}`);
             try {
                 await fetch(`/api/open?path=${encodeURIComponent(path)}`);
             } catch (err) {
@@ -381,8 +388,9 @@
         }
 
         async function scan() {
-            status.textContent = 'Scanning...';
             const path = dirInput.value || '.';
+            uiLog(`Click Scan: ${path}`);
+            status.textContent = 'Scanning...';
             try {
                 const resp = await fetch(`/api/scan?dir=${encodeURIComponent(path)}`);
                 const data = await resp.json();
@@ -402,11 +410,14 @@
                 
                 if (nodes.length === 0) {
                     status.textContent = 'No files found in that directory.';
+                    uiLog('Render: 0 nodes');
                 } else {
                     status.textContent = `Found ${nodes.length} nodes and ${links.length} relations.`;
+                    uiLog(`Render: ${nodes.length} nodes, ${links.length} links`);
                 }
             } catch (err) {
                 status.textContent = 'Error: ' + err.message;
+                uiLog(`Scan ERROR: ${err.message}`);
                 console.error(err);
             }
         }
@@ -427,6 +438,7 @@
 
         restartBtn.addEventListener('click', async () => {
             if (confirm('Restart server? This will close and reopen the app.')) {
+                uiLog('Click Restart');
                 status.textContent = 'Restarting... please wait.';
                 try {
                     await fetch('/api/shutdown');
@@ -458,6 +470,7 @@
             });
 
             if (found) {
+                uiLog(`Select Node: ${found.name}`);
                 draggedNode = found;
                 selectNode(found);
             } else {
@@ -552,6 +565,19 @@
             const i = Math.floor(Math.log(bytes) / Math.log(k));
             return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
         }
+
+        searchInput.addEventListener('input', (e) => {
+            const term = searchInput.value.toLowerCase();
+            if (term.length < 2) return;
+            const found = nodes.find(n => n.name.toLowerCase().includes(term));
+            if (found) {
+                uiLog(`Search Found: ${term} -> ${found.name}`);
+                selectNode(found);
+                // PAN TO THE SEARCHED NODE - smooth pan
+                transform.x = (width / 2 - found.x) * transform.k;
+                transform.y = (height / 2 - found.y) * transform.k;
+            }
+        });
 
 
         requestAnimationFrame(draw);
