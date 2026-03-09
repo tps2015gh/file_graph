@@ -48,10 +48,21 @@ func main() {
 	http.HandleFunc("/", serveIndex)
 	http.HandleFunc("/api/scan", handleScan)
 	http.HandleFunc("/api/open", handleOpen)
+	http.HandleFunc("/api/shutdown", handleShutdown)
 
 	port := "8080"
 	fmt.Printf("Starting server on http://localhost:%s\n", port)
 	log.Fatal(http.ListenAndServe(":"+port, nil))
+}
+
+func handleShutdown(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("Shutdown requested...")
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("Shutting down..."))
+	go func() {
+		time.Sleep(1 * time.Second)
+		os.Exit(0)
+	}()
 }
 
 func handleOpen(w http.ResponseWriter, r *http.Request) {

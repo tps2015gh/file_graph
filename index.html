@@ -120,6 +120,7 @@
             <input type="text" id="search-input" placeholder="Search files (Enter to find related)...">
         </div>
         <button id="scan-btn">Scan Files</button>
+        <button id="restart-btn" style="background:#f38ba8; margin-left:10px;">Restart</button>
     </header>
 
     <main>
@@ -152,6 +153,7 @@
         const ctx = canvas.getContext('2d');
         const searchInput = document.getElementById('search-input');
         const scanBtn = document.getElementById('scan-btn');
+        const restartBtn = document.getElementById('restart-btn');
         const detailsPanel = document.getElementById('details-panel');
         const nodeInfo = document.getElementById('node-info');
         const relatedBody = document.getElementById('related-body');
@@ -333,6 +335,23 @@
         }
 
         scanBtn.addEventListener('click', scan);
+
+        restartBtn.addEventListener('click', async () => {
+            if (confirm('Restart server? This will close and reopen the app.')) {
+                status.textContent = 'Restarting... please wait.';
+                try {
+                    await fetch('/api/shutdown');
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 3000);
+                } catch (e) {
+                    // It will fail because server is down, which is expected
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 3000);
+                }
+            }
+        });
 
         canvas.addEventListener('click', (e) => {
             const rect = canvas.getBoundingClientRect();
