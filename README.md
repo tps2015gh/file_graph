@@ -28,6 +28,10 @@ This program treats the filesystem as a high-dimensional universe where files ar
 - **Server Management**: Restart/Kill server and batch loop directly from the UI.
 - **Memory Optimized**: Configurable batch size for low-RAM systems (-low_ram, -ram8g, -ram16g).
 
+## Screenshots
+
+![File Graph Visualizer](_doc/Screenshot-2026-03-10-000725.png)
+
 ## Getting Started
 1. Clone the repository.
 2. Run `RUN.bat`.
