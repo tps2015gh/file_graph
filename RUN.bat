@@ -7,7 +7,8 @@ set MYDIR=%MYDIR:~0,-1%
 :loop
 cls
 echo Starting File Graph Visualizer...
-"%MYDIR%\file_graph_server.exe" -startpath="%MYDIR%"
+echo Using -ram8g profile for 8GB RAM systems
+"%MYDIR%\file_graph_server.exe" -startpath="%MYDIR%" -ram8g
 if %ERRORLEVEL% NEQ 0 (
     echo.
     echo Server stopped by user request (Kill).
