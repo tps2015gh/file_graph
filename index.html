@@ -130,7 +130,8 @@
             <input type="range" id="rotate-slider" min="0" max="50" value="0">
         </div>
         <button id="scan-btn">Scan Files</button>
-        <button id="restart-btn" style="background:#f38ba8; margin-left:10px;">Restart</button>
+        <button id="restart-btn" style="background:#f9e2af; color:#11111b; margin-left:10px;">Restart</button>
+        <button id="kill-btn" style="background:#f38ba8; color:#11111b; margin-left:5px;">Kill Server</button>
     </header>
 
     <main>
@@ -448,10 +449,22 @@
                         window.location.reload();
                     }, 3000);
                 } catch (e) {
-                    // It will fail because server is down, which is expected
                     setTimeout(() => {
                         window.location.reload();
                     }, 3000);
+                }
+            }
+        });
+
+        killBtn.addEventListener('click', async () => {
+            if (confirm('Kill server? This will stop both the server AND the batch loop.')) {
+                uiLog('Click Kill');
+                status.textContent = 'Killing server... Loop stopped.';
+                try {
+                    await fetch('/api/kill');
+                    document.body.innerHTML = '<div style="background:#1e1e2e; color:#cdd6f4; height:100vh; display:flex; align-items:center; justify-content:center; font-family:sans-serif;"><h1>Server Stopped. Close this tab.</h1></div>';
+                } catch (e) {
+                    document.body.innerHTML = '<div style="background:#1e1e2e; color:#cdd6f4; height:100vh; display:flex; align-items:center; justify-content:center; font-family:sans-serif;"><h1>Server Stopped. Close this tab.</h1></div>';
                 }
             }
         });

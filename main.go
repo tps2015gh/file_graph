@@ -16,6 +16,7 @@ func main() {
 	http.HandleFunc("/api/open", handlers.HandleOpen)
 	http.HandleFunc("/api/log", handlers.HandleClientLog)
 	http.HandleFunc("/api/shutdown", handlers.HandleShutdown)
+	http.HandleFunc("/api/kill", handlers.HandleHardExit)
 
 	port := "8080"
 	fmt.Printf("Starting server on http://localhost:%s\n", port)

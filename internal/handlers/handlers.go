@@ -75,12 +75,23 @@ func HandleClientLog(w http.ResponseWriter, r *http.Request) {
 }
 
 func HandleShutdown(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("Shutdown requested...")
-	logger.Println("EVENT: SHUTDOWN")
+	fmt.Println("Shutdown requested (Restart)...")
+	logger.Println("EVENT: RESTART")
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("Shutting down..."))
 	go func() {
 		time.Sleep(1 * time.Second)
-		os.Exit(0)
+		os.Exit(0) // Exit code 0 signals RESTART to the batch file
+	}()
+}
+
+func HandleHardExit(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("Hard Exit requested (Kill)...")
+	logger.Println("EVENT: KILL")
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("Killing server..."))
+	go func() {
+		time.Sleep(1 * time.Second)
+		os.Exit(1) // Exit code 1 signals STOP to the batch file
 	}()
 }
