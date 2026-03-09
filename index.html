@@ -116,12 +116,12 @@
 <body>
     <header>
         <div style="font-weight: bold; font-size: 1.2rem; min-width: 100px;">File Graph</div>
-        <div style="display: flex; align-items: center; gap: 5px; margin-left: 10px;">
+        <div style="display: flex; align-items: center; gap: 5px; margin-left: 10px; flex-grow: 1;">
             <label style="font-size: 0.8rem; white-space: nowrap;">Path:</label>
-            <input type="text" id="dir-input" placeholder="e.g. C:\Users" style="width: 150px; padding: 4px; background: #181825; border: 1px solid #313244; color: #cdd6f4;">
+            <input type="text" id="dir-input" placeholder="e.g. C:\Users" style="flex-grow: 1; min-width: 200px; padding: 4px; background: #181825; border: 1px solid #313244; color: #cdd6f4;">
         </div>
-        <div class="search-container">
-            <input type="text" id="search-input" placeholder="Search filename... (e.g. 'main' or '.go')">
+        <div class="search-container" style="flex-grow: 2;">
+            <input type="text" id="search-input" placeholder="Search filename... (e.g. 'main' or '.go')" style="width: 100%;">
         </div>
         <div style="display: flex; align-items: center; gap: 10px; margin-right: 20px;">
             <label style="font-size: 0.8rem;">Spacing</label>
@@ -397,16 +397,18 @@
                 
                 // Reset transform to default view
                 transform = { x: 0, y: 0, k: 1 };
+                selectedNode = null;
+                detailsPanel.style.display = 'none';
                 
                 // Initialize positions in a cluster near center
                 nodes = data.nodes.map(n => ({
                     ...n,
-                    x: width / 2 + (Math.random() - 0.5) * 100,
-                    y: height / 2 + (Math.random() - 0.5) * 100,
+                    x: width / 2 + (Math.random() - 0.5) * 200,
+                    y: height / 2 + (Math.random() - 0.5) * 200,
                     vx: 0,
                     vy: 0
                 }));
-                links = data.links;
+                links = data.links || [];
                 
                 if (nodes.length === 0) {
                     status.textContent = 'No files found in that directory.';
@@ -582,7 +584,7 @@
 
         requestAnimationFrame(draw);
         // Initial scan
-        setTimeout(scan, 500);
+        setTimeout(scan, 1500);
     </script>
 </body>
 </html>

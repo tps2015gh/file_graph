@@ -47,6 +47,10 @@ type ScanResult struct {
 var appLogger *log.Logger
 
 func init() {
+	// Create logs directory if it doesn't exist
+	if _, err := os.Stat("logs"); os.IsNotExist(err) {
+		os.Mkdir("logs", 0755)
+	}
 	logFile, err := os.OpenFile("logs/app.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		fmt.Printf("Could not create log file: %v\n", err)
@@ -134,6 +138,7 @@ func handleScan(w http.ResponseWriter, r *http.Request) {
 
 	nodes, err := scanDirectory(dir)
 	if err != nil {
+		fmt.Printf("SCAN ERROR for %s: %v\n", dir, err)
 		if appLogger != nil {
 			appLogger.Printf("ERROR: %v\n", err)
 		}
