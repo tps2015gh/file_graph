@@ -23,12 +23,14 @@ func init() {
 }
 
 func Println(v ...interface{}) {
+	fmt.Println(v...) // Print to CLI
 	if appLogger != nil {
 		appLogger.Println(v...)
 	}
 }
 
 func Printf(format string, v ...interface{}) {
+	fmt.Printf(format, v...) // Print to CLI
 	if appLogger != nil {
 		appLogger.Printf(format, v...)
 	}
