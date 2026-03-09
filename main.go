@@ -17,6 +17,7 @@ func main() {
 	http.HandleFunc("/api/open", handlers.HandleOpen)
 	http.HandleFunc("/api/log", handlers.HandleClientLog)
 	http.HandleFunc("/api/heartbeat", handlers.HandleHeartbeat)
+	http.HandleFunc("/api/progress", handlers.HandleProgress)
 	http.HandleFunc("/api/shutdown", handlers.HandleShutdown)
 	http.HandleFunc("/api/kill", handlers.HandleHardExit)
 

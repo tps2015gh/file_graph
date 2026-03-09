@@ -159,6 +159,7 @@
     </main>
     <div id="status-bar" style="position:absolute; bottom:1rem; left:1rem; right:1rem; display:flex; justify-content:space-between; font-size:0.8rem; color:#6c7086; pointer-events:none;">
         <div id="status">Ready</div>
+        <div id="scan-progress" style="flex-grow:1; text-align:center; padding:0 20px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"></div>
         <div id="heartbeat">Server: Disconnected</div>
     </div>
 
@@ -175,11 +176,14 @@
         const detailsPanel = document.getElementById('details-panel');
         const nodeInfo = document.getElementById('node-info');
         const relatedBody = document.getElementById('related-body');
-        const status = document.getElementById('status');
-
-        const heartbeatDisplay = document.getElementById('heartbeat');
-
-        async function updateHeartbeat() {
+                const status = document.getElementById('status');
+                const scanProgress = document.getElementById('scan-progress');
+                const heartbeatDisplay = document.getElementById('heartbeat');
+        
+                let progressInterval = null;
+        
+                async function updateHeartbeat() {
+        
             try {
                 const resp = await fetch('/api/heartbeat');
                 const data = await resp.json();
@@ -414,9 +418,24 @@
             path = path.replace(/\\/g, '/');
             uiLog(`Click Scan: ${path}`);
             status.textContent = 'Scanning...';
+            scanProgress.textContent = 'Reading files...';
+            
+            // Start polling progress
+            if (progressInterval) clearInterval(progressInterval);
+            progressInterval = setInterval(async () => {
+                try {
+                    const r = await fetch('/api/progress');
+                    const d = await r.json();
+                    if (d.path) scanProgress.textContent = `Reading: ${d.path}`;
+                } catch(e) {}
+            }, 100);
+
             try {
                 const resp = await fetch(`/api/scan?dir=${encodeURIComponent(path)}`);
                 const data = await resp.json();
+                
+                clearInterval(progressInterval);
+                scanProgress.textContent = '';
                 
                 // Reset transform to default view
                 transform = { x: 0, y: 0, k: 1 };
@@ -556,7 +575,10 @@
             detailsPanel.style.display = 'block';
             
             nodeInfo.innerHTML = `
-                <h2>${n.name}</h2>
+                <div style="background:#313244; padding:10px; border-radius:4px; margin-bottom:1rem;">
+                    <h2 style="margin:0; font-size:1.1rem; color:#f5c2e7;">Full Name:</h2>
+                    <div style="font-size:0.95rem; margin-top:5px; word-break:break-all; font-weight:bold;">${n.name}</div>
+                </div>
                 <p><strong>Path:</strong> <span style="font-size:0.8rem">${n.path}</span></p>
                 <button onclick="openPath('${n.path.replace(/\\/g, '\\\\')}')" style="background:#a6e3a1; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-weight:bold; color:#11111b; margin-bottom:1rem;">Open in Explorer</button>
                 <p><strong>Size:</strong> ${formatSize(n.size)} (Last3: ${n.size_last_3})</p>

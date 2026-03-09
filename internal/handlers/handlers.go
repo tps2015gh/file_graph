@@ -86,6 +86,15 @@ func HandleHeartbeat(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func HandleProgress(w http.ResponseWriter, r *http.Request) {
+	scanner.CurrentFileMu.RLock()
+	defer scanner.CurrentFileMu.RUnlock()
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{
+		"path": scanner.CurrentFile,
+	})
+}
+
 func HandleShutdown(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Shutdown requested (Restart)...")
 	logger.Println("EVENT: RESTART")

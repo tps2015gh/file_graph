@@ -10,6 +10,12 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
+)
+
+var (
+	CurrentFile   string
+	CurrentFileMu sync.RWMutex
 )
 
 func ScanDirectory(root string) ([]models.FileNode, error) {
@@ -25,6 +31,10 @@ func ScanDirectory(root string) ([]models.FileNode, error) {
 		if err != nil {
 			return nil // Skip errors
 		}
+
+		CurrentFileMu.Lock()
+		CurrentFile = path
+		CurrentFileMu.Unlock()
 
 		if d.IsDir() && strings.HasPrefix(d.Name(), ".") && path != root {
 			return filepath.SkipDir
