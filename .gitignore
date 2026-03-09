@@ -1,6 +1,18 @@
 # Go binaries
-main.exe
 *.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Build artifacts
+bin/
+pkg/
+_obj/
+
+# Test output
+*.out
+*.test
 
 # Logs
 logs/*
