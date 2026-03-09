@@ -1,0 +1,22 @@
+i want to create program that search file in folder 
+and get in subfolder all folder  
+then canculate embedding vector for each file , for each folder 
+attribute is file name ,size , last 3digit of size , last 4 char of file name (not include extension ) 
+, create date time , modify date  time , hash value  
+then create relation what 
+this create table html for realtion when selected 1 show related file 
+
+also create link as graph (2d) on screen may be use js canvas  
+this show link to each other and calculate gravity for each as sun and anothor star diagram as colony of group of star 
+
+add search capacity to enter keywork 
+then list near/associate/relate file to me show link 
+
+i will send these code to github too , 
+so create readme and license MIT , i am as main dev , you are as assistance 
+but , this for law that ai still not have priority in direction of program haha . 
+
+add document 
+
+this will be stand alone web application dev in go lang and show client as web browser. 
+ 
