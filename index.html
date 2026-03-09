@@ -210,6 +210,7 @@
         let selectedNode = null;
         let draggedNode = null;
         let kineticEnergy = 0;
+        let simulationAlpha = 1.0;
         let transform = { x: 0, y: 0, k: 1 };
         let isPanning = false;
         let lastMouse = { x: 0, y: 0 };
@@ -224,14 +225,27 @@
         window.addEventListener('resize', resize);
         resize();
 
-        // Simple Force-Directed Layout Simulation
+        // Force-Directed Layout Simulation with "Shake & Brake" cooling
         function simulate() {
             if (nodes.length === 0) return;
+            
+            // "Brake" - if energy is low or cooling is done, stop movement
+            if (simulationAlpha < 0.01) {
+                status.textContent = 'Stable (Stopped)';
+                return;
+            }
 
+            let totalMove = 0;
             const spacing = parseFloat(spacingSlider.value);
             const rotationSpeed = parseFloat(rotateSlider.value) / 10000;
+            
+            // Cooling decay - makes the simulation settle
+            simulationAlpha *= 0.985; 
 
-            // Repulsion between all nodes
+            // Forces are scaled by alpha to reduce jitters as it settles
+            const forceMultiplier = simulationAlpha;
+
+            // Repulsion
             for (let i = 0; i < nodes.length; i++) {
                 const n1 = nodes[i];
                 for (let j = i + 1; j < nodes.length; j++) {
@@ -241,7 +255,7 @@
                     const distSq = dx * dx + dy * dy || 1;
                     const dist = Math.sqrt(distSq);
                     
-                    const force = spacing / distSq;
+                    const force = (spacing / distSq) * forceMultiplier;
                     const fx = (dx / dist) * force;
                     const fy = (dy / dist) * force;
 
@@ -252,70 +266,54 @@
                 }
             }
             
-            // Rotation Force (Apply a slight tangent force to each node relative to center)
             if (rotationSpeed > 0) {
                 nodes.forEach(n => {
                     const dx = n.x - width/2;
                     const dy = n.y - height/2;
                     const dist = Math.sqrt(dx*dx + dy*dy) || 1;
-                    // Tangent vector is (-dy, dx)
-                    n.vx += (-dy / dist) * rotationSpeed * dist;
-                    n.vy += (dx / dist) * rotationSpeed * dist;
+                    n.vx += (-dy / dist) * rotationSpeed * dist * forceMultiplier;
+                    n.vy += (dx / dist) * rotationSpeed * dist * forceMultiplier;
                 });
             }
 
-            // Attraction between linked nodes
             links.forEach(link => {
                 const s = nodes.find(n => n.id === link.source);
                 const t = nodes.find(n => n.id === link.target);
                 if (!s || !t) return;
-
                 const dx = t.x - s.x;
                 const dy = t.y - s.y;
-                const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-                // SLOWER ATTRACTION: reduced from 0.05 to 0.02
-                const strength = link.similarity * 0.02;
-                
-                const fx = dx * strength;
-                const fy = dy * strength;
-
-                s.vx += fx;
-                s.vy += fy;
-                t.vx -= fx;
-                t.vy -= fy;
+                const strength = link.similarity * 0.02 * forceMultiplier;
+                s.vx += dx * strength;
+                s.vy += dy * strength;
+                t.vx -= dx * strength;
+                t.vy -= dy * strength;
             });
 
-                // Center attraction (Gravity toward center)
-            let totalMove = 0;
+            // "Brake" logic: Friction increases as Alpha decreases
+            // Damping goes from 0.9 (low friction) to 0.4 (heavy brake)
+            const friction = 0.4 + (0.5 * simulationAlpha);
+
             nodes.forEach(n => {
-                if (n === draggedNode) return; // Don't apply physics while dragging
+                if (n === draggedNode) return;
 
                 const dx = width / 2 - n.x;
                 const dy = height / 2 - n.y;
-                // SLOWER CENTER GRAVITY: from 0.005 to 0.002
-                n.vx += dx * 0.002;
-                n.vy += dy * 0.002;
+                n.vx += dx * 0.002 * forceMultiplier;
+                n.vy += dy * 0.002 * forceMultiplier;
 
-                // STRONGER DAMPING: from 0.9 to 0.8 to stop faster
-                n.vx *= 0.8;
-                n.vy *= 0.8;
+                n.vx *= friction;
+                n.vy *= friction;
 
                 n.x += n.vx;
                 n.y += n.vy;
                 
                 totalMove += Math.abs(n.vx) + Math.abs(n.vy);
-
-                // Keep in bounds
                 n.x = Math.max(10, Math.min(width - 10, n.x));
                 n.y = Math.max(10, Math.min(height - 10, n.y));
             });
 
             kineticEnergy = totalMove;
-            if (kineticEnergy > 10) {
-                status.textContent = `Stabilizing... (Energy: ${Math.round(kineticEnergy)})`;
-            } else {
-                status.textContent = 'Stable';
-            }
+            status.textContent = `Stabilizing... (Alpha: ${simulationAlpha.toFixed(2)})`;
         }
 
         function draw() {
@@ -441,6 +439,7 @@
                 transform = { x: 0, y: 0, k: 1 };
                 selectedNode = null;
                 detailsPanel.style.display = 'none';
+                simulationAlpha = 1.0; // Reset Cooling
                 
                 // Initialize positions in a cluster near center
                 nodes = data.nodes.map(n => ({
@@ -527,10 +526,12 @@
 
             if (found) {
                 uiLog(`Select Node: ${found.name}`);
+                simulationAlpha = 0.5; // Wake up simulation slightly
                 draggedNode = found;
                 selectNode(found);
             } else {
                 isPanning = true;
+                simulationAlpha = 0.1; // Wake up a tiny bit for panning
                 lastMouse = { x: e.clientX, y: e.clientY };
                 selectedNode = null;
                 detailsPanel.style.display = 'none';
