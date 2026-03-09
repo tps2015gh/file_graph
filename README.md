@@ -98,5 +98,18 @@ file_graph_server.exe -startpath=C:\myproject -low_ram
 file_graph_server.exe -startpath=C:\myproject -batch=500 -threshold=0.6
 ```
 
+## Known Issues & Limitations
+
+### Performance
+- **Large folders may cause browser hang or slow performance**: Scanning directories with thousands of files can consume significant memory and CPU. Use `-low_ram` or `-ram8g` flags to reduce batch size and improve stability.
+
+### UI/UX
+- **Navigation bar overflow**: On smaller screens or when using many controls, the toolbar may extend beyond the visible area. Use the browser's horizontal scroll or reduce the number of visible controls.
+- **Spacing and Rotate sliders**: These controls currently have limited effect on the force simulation. A future update will enhance their functionality.
+
+### Functional Bugs
+- **Browse folder button**: The folder browser dialog may not work correctly in all browsers. Please enter the folder path manually as a workaround.
+- **Unicode/Thai language paths**: Some paths containing Thai characters or special Unicode characters may cause JSON parsing errors. Avoid scanning folders with non-ASCII names.
+
 ## License
 Distributed under the **MIT License**. See `LICENSE` for more information.
