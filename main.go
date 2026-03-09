@@ -12,6 +12,7 @@ func main() {
 	logger.Println("--- START ---")
 
 	http.HandleFunc("/", handlers.ServeIndex)
+	http.HandleFunc("/favicon.ico", handlers.ServeFavicon)
 	http.HandleFunc("/api/scan", handlers.HandleScan)
 	http.HandleFunc("/api/open", handlers.HandleOpen)
 	http.HandleFunc("/api/log", handlers.HandleClientLog)
