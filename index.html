@@ -128,6 +128,9 @@
             <label style="font-size: 0.8rem;">Links:</label>
             <input type="range" id="links-slider" min="1" max="100" value="100">
             <span id="links-value" style="font-size:0.75rem; min-width:35px;">100%</span>
+            <label style="font-size: 0.8rem;">Max:</label>
+            <input type="range" id="maxlinks-slider" min="0" max="20" value="5">
+            <span id="maxlinks-value" style="font-size:0.75rem; min-width:25px;">5</span>
             <button id="links-reset-btn" style="background:#313244; color:#cdd6f4; border:1px solid #45475a; padding:2px 6px; border-radius:4px; cursor:pointer; font-size:0.7rem;">Reset</button>
             <label style="font-size: 0.8rem;">Spacing</label>
             <input type="range" id="spacing-slider" min="100" max="2000" value="500">
@@ -137,6 +140,7 @@
             <button id="zoom-out-btn" style="background:#313244; color:#cdd6f4; border:1px solid #45475a; padding:2px 8px; border-radius:4px; cursor:pointer; font-size:0.8rem;">Zoom-</button>
             <button id="zoom-reset-btn" style="background:#313244; color:#cdd6f4; border:1px solid #45475a; padding:2px 6px; border-radius:4px; cursor:pointer; font-size:0.7rem;">1:1</button>
             <button id="shake-btn" style="background:#f38ba8; color:#11111b; border:1px solid #f38ba8; padding:2px 8px; border-radius:4px; cursor:pointer; font-size:0.8rem;">Shake</button>
+            <button id="spread-btn" style="background:#89b4fa; color:#11111b; border:1px solid #89b4fa; padding:2px 8px; border-radius:4px; cursor:pointer; font-size:0.8rem;">Spread</button>
         </div>
         <button id="scan-btn">Scan Files</button>
         <button id="restart-btn" style="background:#f9e2af; color:#11111b; margin-left:10px;">Restart</button>
@@ -186,10 +190,13 @@
         const linksSlider = document.getElementById('links-slider');
         const linksValue = document.getElementById('links-value');
         const linksResetBtn = document.getElementById('links-reset-btn');
+        const maxLinksSlider = document.getElementById('maxlinks-slider');
+        const maxLinksValue = document.getElementById('maxlinks-value');
         const zoomInBtn = document.getElementById('zoom-in-btn');
         const zoomOutBtn = document.getElementById('zoom-out-btn');
         const zoomResetBtn = document.getElementById('zoom-reset-btn');
         const shakeBtn = document.getElementById('shake-btn');
+        const spreadBtn = document.getElementById('spread-btn');
         const detailsPanel = document.getElementById('details-panel');
         const nodeInfo = document.getElementById('node-info');
         const relatedBody = document.getElementById('related-body');
@@ -232,6 +239,7 @@
         let isPanning = false;
         let lastMouse = { x: 0, y: 0 };
         let linksFilter = 100; // percentage of top links to show
+        let maxLinksPerNode = 5; // limit links per node (0 = no limit)
         let filteredLinks = []; // computed filtered links
 
         function resize() {
@@ -460,14 +468,8 @@
                 detailsPanel.style.display = 'none';
                 simulationAlpha = 1.0; // Reset Cooling
                 
-                // Initialize positions in a cluster near center
-                nodes = data.nodes.map(n => ({
-                    ...n,
-                    x: width / 2 + (Math.random() - 0.5) * 200,
-                    y: height / 2 + (Math.random() - 0.5) * 200,
-                    vx: 0,
-                    vy: 0
-                }));
+                // Initialize node positions using separate function
+                nodes = initializeNodePositions(data.nodes, width, height);
                 links = data.links || [];
                 updateFilteredLinks(); // Initialize filtered links
                 
@@ -583,21 +585,72 @@
             linksSlider.value = 100;
             linksFilter = 100;
             linksValue.textContent = '100%';
+            maxLinksSlider.value = 5;
+            maxLinksPerNode = 5;
+            maxLinksValue.textContent = '5';
             updateFilteredLinks();
             simulationAlpha = 0.5;
         });
 
-        function updateFilteredLinks() {
-            if (links.length === 0) {
-                filteredLinks = [];
-                return;
-            }
-            // Sort links by similarity and keep only top X%
-            const sorted = [...links].sort((a, b) => b.similarity - a.similarity);
-            const keepCount = Math.ceil(sorted.length * linksFilter / 100);
+        // Max links per node slider
+        maxLinksSlider.addEventListener('input', (e) => {
+            maxLinksPerNode = parseInt(e.target.value);
+            maxLinksValue.textContent = maxLinksPerNode;
+            updateFilteredLinks();
+            simulationAlpha = 0.5;
+        });
+
+        // Function to calculate initial node positions (spiral distribution)
+        function initializeNodePositions(nodeList, canvasWidth, canvasHeight) {
+            const nodeCount = nodeList.length;
+            const spreadRadius = Math.min(Math.max(300, nodeCount * 3), 2000);
+            
+            return nodeList.map((n, i) => {
+                const angle = i * 0.5; // Golden angle-ish
+                const r = Math.sqrt(i) * (spreadRadius / Math.sqrt(nodeCount));
+                return {
+                    ...n,
+                    x: canvasWidth / 2 + Math.cos(angle) * r,
+                    y: canvasHeight / 2 + Math.sin(angle) * r,
+                    vx: 0,
+                    vy: 0
+                };
+            });
+        }
+
+        // Function to calculate links (with max per node limit)
+        function calculateFilteredLinks(allLinks, filterPercent, maxPerNode) {
+            if (allLinks.length === 0) return [];
+            
+            // Sort links by similarity
+            const sorted = [...allLinks].sort((a, b) => b.similarity - a.similarity);
+            
+            // Filter by percentage
+            const keepCount = Math.ceil(sorted.length * filterPercent / 100);
             const threshold = sorted[keepCount - 1]?.similarity || 0;
-            filteredLinks = sorted.filter(l => l.similarity >= threshold);
-            status.textContent = `Links: ${filteredLinks.length} / ${links.length} (${linksFilter}%)`;
+            let filtered = sorted.filter(l => l.similarity >= threshold);
+            
+            // Limit links per node
+            if (maxPerNode > 0) {
+                const nodeLinkCount = {};
+                filtered = filtered.filter(l => {
+                    const sourceCount = nodeLinkCount[l.source] || 0;
+                    const targetCount = nodeLinkCount[l.target] || 0;
+                    if (sourceCount < maxPerNode && targetCount < maxPerNode) {
+                        nodeLinkCount[l.source] = sourceCount + 1;
+                        nodeLinkCount[l.target] = targetCount + 1;
+                        return true;
+                    }
+                    return false;
+                });
+            }
+            
+            return filtered;
+        }
+
+        function updateFilteredLinks() {
+            filteredLinks = calculateFilteredLinks(links, linksFilter, maxLinksPerNode);
+            status.textContent = `Links: ${filteredLinks.length} / ${links.length} (${linksFilter}%, max ${maxLinksPerNode}/node)`;
         }
 
         // Shake button - adds random small energy to all nodes
@@ -609,6 +662,14 @@
             });
             simulationAlpha = 0.8;
             status.textContent = 'Shaking!';
+        });
+
+        // Spread button - redistribute nodes in spiral pattern using separate function
+        spreadBtn.addEventListener('click', () => {
+            uiLog('Click Spread');
+            nodes = initializeNodePositions(nodes, width, height);
+            simulationAlpha = 0.8;
+            status.textContent = 'Spread reset!';
         });
 
         canvas.addEventListener('mousedown', (e) => {
