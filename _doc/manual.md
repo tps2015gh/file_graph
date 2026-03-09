@@ -1,7 +1,7 @@
 # User Manual & Program Guide
 # คู่มือผู้ใช้และคำอธิบายโปรแกรม
 
-## English Version
+## <a name="english-version"></a>English Version
 ### Features
 1.  **Scanner & Real-time Progress**: Recursively scans folders and shows the current file being read at the bottom of the screen.
 2.  **2D Interaction (UX/UI)**:
@@ -22,7 +22,7 @@
 
 ---
 
-## ภาษาไทย
+## <a name="ภาษาไทย"></a>ภาษาไทย
 ### ฟีเจอร์หลัก
 1.  **ตัวสแกนและความคืบหน้าแบบเรียลไทม์**: สแกนโฟลเดอร์แบบเรียกซ้ำและแสดงไฟล์ที่กำลังอ่านอยู่ในแถบด้านล่างของหน้าจอ
 2.  **การโต้ตอบแบบ 2D (UX/UI)**:

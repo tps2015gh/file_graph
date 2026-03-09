@@ -1,7 +1,7 @@
 # Conceptual Framework: 26-Dimensional Vector Space
 # กรอบแนวคิดเชิงทฤษฎี: ปริภูมิเวกเตอร์ 26 มิติ
 
-## English Version
+## <a name="english-version"></a>English Version
 This project treats the filesystem as a high-dimensional data universe. Every file and folder is mapped into a **26-Dimensional (26D) Vector Space** to find hidden relationships and similarities beyond just folder nesting.
 
 ### 1. Feature Extraction (Embedding)
@@ -24,7 +24,7 @@ We apply a **Physics-Based Simulation** (Force-Directed Graph) where:
 
 ---
 
-## ภาษาไทย
+## <a name="ภาษาไทย"></a>ภาษาไทย
 โปรเจกต์นี้มองระบบไฟล์เป็นจักรวาลข้อมูลที่มีมิติสูง โดยไฟล์และโฟลเดอร์แต่ละรายการจะถูกจับคู่เข้ากับ **ปริภูมิเวกเตอร์ 26 มิติ (26D Vector Space)** เพื่อค้นหาความสัมพันธ์และความคล้ายคลึงที่ซ่อนอยู่นอกเหนือจากการจัดวางในโฟลเดอร์แบบปกติ
 
 ### 1. การสกัดคุณลักษณะ (Embedding)

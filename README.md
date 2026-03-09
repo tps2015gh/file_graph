@@ -9,8 +9,9 @@ A standalone Go web application to scan directories, extract file metadata, calc
 ## Core Concept
 This program treats the filesystem as a high-dimensional universe where files are stars. Related files cluster together into "Star Colonies" based on their metadata and content signatures.
 
-- **[Theoretical Concept (ภาษาไทย/English)](_theory/concept.md)**
-- **[User Manual & Features (ภาษาไทย/English)](_doc/manual.md)**
+### Documentation
+- **Theoretical Concept**: [English](_theory/concept.md#english-version) / [ภาษาไทย](_theory/concept.md#ภาษาไทย)
+- **User Manual & Features**: [English](_doc/manual.md#english-version) / [ภาษาไทย](_doc/manual.md#ภาษาไทย)
 
 ## Features
 - **26D Embedding Vector**: Extracts size, name, time, and content hash (SHA-256).
