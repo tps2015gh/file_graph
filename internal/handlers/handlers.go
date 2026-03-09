@@ -78,6 +78,14 @@ func HandleClientLog(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+func HandleHeartbeat(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"time":   time.Now().Format("15:04:05"),
+		"status": "alive",
+	})
+}
+
 func HandleShutdown(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Shutdown requested (Restart)...")
 	logger.Println("EVENT: RESTART")

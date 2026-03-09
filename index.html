@@ -157,7 +157,10 @@
             </div>
         </div>
     </main>
-    <div id="status">Ready</div>
+    <div id="status-bar" style="position:absolute; bottom:1rem; left:1rem; right:1rem; display:flex; justify-content:space-between; font-size:0.8rem; color:#6c7086; pointer-events:none;">
+        <div id="status">Ready</div>
+        <div id="heartbeat">Server: Disconnected</div>
+    </div>
 
     <script>
         const canvas = document.getElementById('graph-canvas');
@@ -172,6 +175,23 @@
         const nodeInfo = document.getElementById('node-info');
         const relatedBody = document.getElementById('related-body');
         const status = document.getElementById('status');
+
+        const heartbeatDisplay = document.getElementById('heartbeat');
+
+        async function updateHeartbeat() {
+            try {
+                const resp = await fetch('/api/heartbeat');
+                const data = await resp.json();
+                heartbeatDisplay.textContent = `Server: ${data.time} (Alive)`;
+                heartbeatDisplay.style.color = '#a6e3a1';
+            } catch (e) {
+                heartbeatDisplay.textContent = 'Server: Offline';
+                heartbeatDisplay.style.color = '#f38ba8';
+            }
+        }
+
+        setInterval(updateHeartbeat, 5000);
+        updateHeartbeat();
 
         async function uiLog(msg) {
             try {
