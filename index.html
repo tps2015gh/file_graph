@@ -206,7 +206,8 @@
                 const dx = t.x - s.x;
                 const dy = t.y - s.y;
                 const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-                const strength = link.similarity * 0.05;
+                // SLOWER ATTRACTION: reduced from 0.05 to 0.02
+                const strength = link.similarity * 0.02;
                 
                 const fx = dx * strength;
                 const fy = dy * strength;
@@ -221,12 +222,13 @@
             nodes.forEach(n => {
                 const dx = width / 2 - n.x;
                 const dy = height / 2 - n.y;
-                n.vx += dx * 0.005;
-                n.vy += dy * 0.005;
+                // SLOWER CENTER GRAVITY: from 0.005 to 0.002
+                n.vx += dx * 0.002;
+                n.vy += dy * 0.002;
 
-                // Damping
-                n.vx *= 0.9;
-                n.vy *= 0.9;
+                // STRONGER DAMPING: from 0.9 to 0.8 to stop faster
+                n.vx *= 0.8;
+                n.vy *= 0.8;
 
                 n.x += n.vx;
                 n.y += n.vy;
@@ -300,6 +302,14 @@
             requestAnimationFrame(draw);
         }
 
+        async function openPath(path) {
+            try {
+                await fetch(`/api/open?path=${encodeURIComponent(path)}`);
+            } catch (err) {
+                console.error('Failed to open path', err);
+            }
+        }
+
         async function scan() {
             status.textContent = 'Scanning...';
             try {
@@ -352,7 +362,8 @@
             
             nodeInfo.innerHTML = `
                 <h2>${n.name}</h2>
-                <p><strong>Path:</strong> ${n.path}</p>
+                <p><strong>Path:</strong> <span style="font-size:0.8rem">${n.path}</span></p>
+                <button onclick="openPath('${n.path.replace(/\\/g, '\\\\')}')" style="background:#a6e3a1; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-weight:bold; color:#11111b; margin-bottom:1rem;">Open in Explorer</button>
                 <p><strong>Size:</strong> ${formatSize(n.size)} (Last3: ${n.size_last_3})</p>
                 <p><strong>Modified:</strong> ${new Date(n.modified_at).toLocaleString()}</p>
                 <p><strong>Hash:</strong> <span style="font-size:0.7rem; color:#a6adc8; word-break:break-all;">${n.hash || 'N/A'}</span></p>

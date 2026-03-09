@@ -11,6 +11,7 @@ import (
 	"math"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
@@ -46,10 +47,28 @@ type ScanResult struct {
 func main() {
 	http.HandleFunc("/", serveIndex)
 	http.HandleFunc("/api/scan", handleScan)
+	http.HandleFunc("/api/open", handleOpen)
 
 	port := "8080"
 	fmt.Printf("Starting server on http://localhost:%s\n", port)
 	log.Fatal(http.ListenAndServe(":"+port, nil))
+}
+
+func handleOpen(w http.ResponseWriter, r *http.Request) {
+	path := r.URL.Query().Get("path")
+	if path == "" {
+		http.Error(w, "Path is required", http.StatusBadRequest)
+		return
+	}
+
+	// For Windows: open the path in Explorer and select the file
+	absPath, err := filepath.Abs(path)
+	if err == nil {
+		path = absPath
+	}
+	
+	exec.Command("explorer", "/select,", path).Run()
+	w.WriteHeader(http.StatusOK)
 }
 
 func serveIndex(w http.ResponseWriter, r *http.Request) {
