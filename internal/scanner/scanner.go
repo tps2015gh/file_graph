@@ -13,7 +13,14 @@ import (
 )
 
 func ScanDirectory(root string) ([]models.FileNode, error) {
+	root = filepath.Clean(root)
 	var nodes []models.FileNode
+	
+	// Check if root exists
+	if _, err := os.Stat(root); err != nil {
+		return nil, err
+	}
+
 	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return nil // Skip errors
