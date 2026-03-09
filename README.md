@@ -27,6 +27,8 @@ This program treats the filesystem as a high-dimensional universe where files ar
 
 ![File Graph Visualizer](_doc/Screenshot-2026-03-10-000725.png)
 
+![File Graph with Controls](_doc/Screenshot-2026-03-10-004132.png)
+
 ## Getting Started
 1. Clone the repository.
 2. Run `RUN.bat`.
