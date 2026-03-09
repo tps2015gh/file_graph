@@ -4,7 +4,10 @@ A standalone Go web application to scan directories, extract file metadata, calc
 
 ## Project Roles & Direction
 - **Lead Programmer & Director**: The User
-- **AI Team Assistance**: Gemini CLI (Powered by multiple models)
+- **AI Team Assistance** (Last Updated: 2026-03-09):
+  - Gemini CLI (Powered by multiple models)
+  - OpenCode (Advanced AI coding assistant)
+  - Big Pickle (Specialized AI model)
 
 ## Core Concept
 This program treats the filesystem as a high-dimensional universe where files are stars. Related files cluster together into "Star Colonies" based on their metadata and content signatures.

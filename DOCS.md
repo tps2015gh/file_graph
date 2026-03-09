@@ -2,6 +2,11 @@
 
 This document explains how the File Graph Visualizer works.
 
+## Documentation
+- [User Manual](_doc/manual.md)
+- [Concept & Theory](_theory/concept.md)
+- [Data Storage (No Database)](_doc/storage.md)
+
 ## Backend (Go)
 
 - **Scanner**: The `scanDirectory` function uses `filepath.WalkDir` to traverse the directory tree.

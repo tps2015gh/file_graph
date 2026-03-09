@@ -14,6 +14,16 @@ import (
 	"time"
 )
 
+var StartPath string
+
+func SetStartPath(path string) {
+	StartPath = path
+}
+
+func GetStartPath() string {
+	return StartPath
+}
+
 func ServeIndex(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/" {
 		http.NotFound(w, r)
@@ -24,6 +34,13 @@ func ServeIndex(w http.ResponseWriter, r *http.Request) {
 
 func ServeFavicon(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func HandleGetStartPath(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{
+		"path": StartPath,
+	})
 }
 
 func HandleScan(w http.ResponseWriter, r *http.Request) {
@@ -65,7 +82,7 @@ func HandleOpen(w http.ResponseWriter, r *http.Request) {
 	if err == nil {
 		path = absPath
 	}
-	
+
 	exec.Command("explorer", "/select,", path).Run()
 	w.WriteHeader(http.StatusOK)
 }

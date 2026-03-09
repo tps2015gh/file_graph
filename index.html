@@ -119,6 +119,7 @@
         <div style="display: flex; align-items: center; gap: 5px; margin-left: 10px; flex-grow: 1;">
             <label style="font-size: 0.8rem; white-space: nowrap;">Path:</label>
             <input type="text" id="dir-input" placeholder="e.g. C:\Users" style="flex-grow: 1; min-width: 200px; padding: 4px; background: #181825; border: 1px solid #313244; color: #cdd6f4;">
+            <button id="browse-btn" style="background:#313244; color:#cdd6f4; border:1px solid #45475a; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:0.8rem;">Browse...</button>
         </div>
         <div class="search-container" style="flex-grow: 2;">
             <input type="text" id="search-input" placeholder="Search filename... (e.g. 'main' or '.go')" style="width: 100%;">
@@ -168,6 +169,7 @@
         const ctx = canvas.getContext('2d');
         const searchInput = document.getElementById('search-input');
         const scanBtn = document.getElementById('scan-btn');
+        const browseBtn = document.getElementById('browse-btn');
         const dirInput = document.getElementById('dir-input');
         const restartBtn = document.getElementById('restart-btn');
         const killBtn = document.getElementById('kill-btn');
@@ -467,6 +469,28 @@
 
         scanBtn.addEventListener('click', scan);
 
+        browseBtn.addEventListener('click', () => {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.webkitdirectory = true;
+            input.multiple = false;
+            
+            input.onchange = (e) => {
+                const files = e.target.files;
+                if (files.length > 0) {
+                    const file = files[0];
+                    let path = file.webkitRelativePath || file.name;
+                    const lastSlash = Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\'));
+                    if (lastSlash > 0) {
+                        path = path.substring(0, lastSlash);
+                    }
+                    dirInput.value = path;
+                }
+            };
+            
+            input.click();
+        });
+
         searchInput.addEventListener('input', (e) => {
             const term = searchInput.value.toLowerCase();
             if (term.length < 2) return;
@@ -641,8 +665,26 @@
 
 
         requestAnimationFrame(draw);
-        // Initial scan
-        setTimeout(scan, 1500);
+        
+        // Load startpath and auto-scan if provided
+        async function initStartPath() {
+            try {
+                const resp = await fetch('/api/startpath');
+                const data = await resp.json();
+                if (data.path) {
+                    dirInput.value = data.path;
+                    status.textContent = 'Auto-scanning: ' + data.path;
+                    scanProgress.textContent = 'Starting scan...';
+                    scan();
+                } else {
+                    setTimeout(scan, 1500);
+                }
+            } catch (e) {
+                setTimeout(scan, 1500);
+            }
+        }
+        
+        initStartPath();
     </script>
 </body>
 </html>
