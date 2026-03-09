@@ -25,38 +25,27 @@ var (
 	LowRAM        bool
 	Ram8g         bool
 	Ram16g        bool
+	SkipHash      bool
+	MaxFiles      int
 )
 
 func applyMemoryProfile() {
-	maxFiles := MaxFilesDefault
-	batch := BatchSize
-	threshold := ScanThreshold
-
 	if LowRAM {
-		batch = 300
-		maxFiles = 2000
-		threshold = 0.6
-		fmt.Println("[Profile] Low RAM mode: batch=300, threshold=0.6")
+		BatchSize = 300
+		ScanThreshold = 0.6
 	} else if Ram8g {
-		batch = 500
-		maxFiles = 3500
-		threshold = 0.65
-		fmt.Println("[Profile] 8GB RAM mode: batch=500, threshold=0.65")
+		BatchSize = 500
+		ScanThreshold = 0.65
 	} else if Ram16g {
-		batch = 800
-		maxFiles = 4500
-		threshold = 0.7
-		fmt.Println("[Profile] 16GB RAM mode: batch=800, threshold=0.7")
+		BatchSize = 800
+		ScanThreshold = 0.7
+	} else {
+		BatchSize = DefaultBatchSize
+		ScanThreshold = DefaultThreshold
 	}
 
-	if batch > 0 {
-		BatchSize = batch
-		scanner.SetScannerLimits(maxFiles, batch)
-	}
-	if threshold > 0 {
-		ScanThreshold = threshold
-		embedding.SetThreshold(threshold)
-	}
+	scanner.SetScannerLimits(MaxFilesDefault, BatchSize)
+	embedding.SetThreshold(ScanThreshold)
 }
 
 func main() {

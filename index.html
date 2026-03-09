@@ -170,11 +170,18 @@
             </div>
         </div>
     </main>
-    <div id="status-bar" style="position:absolute; bottom:1rem; left:1rem; right:1rem; display:flex; justify-content:space-between; font-size:0.8rem; color:#6c7086; pointer-events:none;">
-        <div id="status">Ready</div>
-        <div id="scan-progress" style="flex-grow:1; text-align:center; padding:0 20px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"></div>
-        <div id="heartbeat">Server: Disconnected</div>
-    </div>
+     <div id="status-bar" style="position:absolute; bottom:1rem; left:1rem; right:1rem; display:flex; justify-content:space-between; font-size:0.8rem; color:#6c7086; pointer-events:none;">
+         <div id="status">Ready</div>
+         <div id="scan-progress" style="flex-grow:1; text-align:center; padding:0 20px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"></div>
+         <div id="heartbeat">Server: Disconnected</div>
+     </div>
+     
+     <div id="selected-node-info" style="position:absolute; bottom:3rem; left:1rem; right:1rem; background:rgba(24,24,37,0.9); padding:0.5rem; border-radius:4px; font-size:0.75rem; color:#cdd6f4; max-height:3rem; overflow:hidden; display:none;">
+         <div style="display:flex; align-items:center; gap:0.5rem;">
+             <strong>Selected:</strong>
+             <span id="selected-node-path" style="font-family:monospace; color:#89b4fa;">No node selected</span>
+         </div>
+     </div>
 
     <script>
         const canvas = document.getElementById('graph-canvas');
@@ -252,7 +259,109 @@
         window.addEventListener('resize', resize);
         resize();
 
-        // Force-Directed Layout Simulation with "Shake & Brake" cooling
+        // Barnes-Hut Quad Tree Implementation
+        class QuadTree {
+            constructor(bounds, capacity = 4) {
+                this.bounds = bounds;
+                this.capacity = capacity;
+                this.nodes = [];
+                this.divided = false;
+                this.children = [];
+                this.centerOfMass = { x: 0, y: 0, mass: 0 };
+            }
+
+            subdivide() {
+                const { x, y, width, height } = this.bounds;
+                const halfWidth = width / 2;
+                const halfHeight = height / 2;
+                
+                this.children = [
+                    new QuadTree({ x: x, y: y, width: halfWidth, height: halfHeight }, this.capacity),
+                    new QuadTree({ x: x + halfWidth, y: y, width: halfWidth, height: halfHeight }, this.capacity),
+                    new QuadTree({ x: x, y: y + halfHeight, width: halfWidth, height: halfHeight }, this.capacity),
+                    new QuadTree({ x: x + halfWidth, y: y + halfHeight, width: halfWidth, height: halfHeight }, this.capacity)
+                ];
+                this.divided = true;
+                
+                // Move existing nodes to appropriate children
+                for (const node of this.nodes) {
+                    this.insert(node);
+                }
+                this.nodes = [];
+            }
+
+            insert(node) {
+                if (!this.contains(node)) return false;
+
+                if (!this.divided && this.nodes.length < this.capacity) {
+                    this.nodes.push(node);
+                    this.updateCenterOfMass(node);
+                    return true;
+                }
+
+                if (!this.divided) {
+                    this.subdivide();
+                }
+
+                for (const child of this.children) {
+                    if (child.insert(node)) {
+                        this.updateCenterOfMass(node);
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            contains(node) {
+                return node.x >= this.bounds.x && 
+                       node.x <= this.bounds.x + this.bounds.width &&
+                       node.y >= this.bounds.y && 
+                       node.y <= this.bounds.y + this.bounds.height;
+            }
+
+            updateCenterOfMass(node) {
+                const totalMass = this.centerOfMass.mass + 1;
+                this.centerOfMass.x = (this.centerOfMass.x * this.centerOfMass.mass + node.x) / totalMass;
+                this.centerOfMass.y = (this.centerOfMass.y * this.centerOfMass.mass + node.y) / totalMass;
+                this.centerOfMass.mass = totalMass;
+            }
+
+            calculateForces(node, theta = 0.5, callback) {
+                if (!this.centerOfMass.mass || (node.x === this.centerOfMass.x && node.y === this.centerOfMass.y)) {
+                    return;
+                }
+
+                const dx = this.centerOfMass.x - node.x;
+                const dy = this.centerOfMass.y - node.y;
+                const distanceSquared = dx * dx + dy * dy || 1;
+                const widthSquared = this.bounds.width * this.bounds.width;
+
+                // If far enough away, treat as single entity
+                if (widthSquared / distanceSquared < theta || this.nodes.length <= 1) {
+                    callback(dx, dy, distanceSquared, this.centerOfMass.mass);
+                    return;
+                }
+
+                // Otherwise, recurse into children
+                if (this.divided) {
+                    for (const child of this.children) {
+                        child.calculateForces(node, theta, callback);
+                    }
+                } else {
+                    // Calculate forces with individual nodes
+                    for (const otherNode of this.nodes) {
+                        if (otherNode !== node) {
+                            const dx = otherNode.x - node.x;
+                            const dy = otherNode.y - node.y;
+                            const distSq = dx * dx + dy * dy || 1;
+                            callback(dx, dy, distSq, 1);
+                        }
+                    }
+                }
+            }
+        }
+
+        // Force-Directed Layout Simulation with Barnes-Hut optimization
         function simulate() {
             if (nodes.length === 0) return;
             
@@ -266,50 +375,73 @@
             const spacing = parseFloat(spacingSlider.value);
             const rotationSpeed = parseFloat(rotateSlider.value) / 10000;
             
-            // Cooling decay - makes the simulation settle
-            simulationAlpha *= 0.985; 
+            // Smoother cooling decay
+            simulationAlpha *= 0.998; 
 
-            // Forces are scaled by alpha to reduce jitters as it settles
-            const forceMultiplier = simulationAlpha;
+            // More gentle force scaling for large datasets
+            const adaptiveForceMultiplier = Math.min(simulationAlpha, 0.5 + (0.5 * Math.log10(nodes.length + 1) / Math.log10(1001)));
 
-            // Repulsion
-            for (let i = 0; i < nodes.length; i++) {
-                const n1 = nodes[i];
-                for (let j = i + 1; j < nodes.length; j++) {
-                    const n2 = nodes[j];
-                    const dx = n2.x - n1.x;
-                    const dy = n2.y - n1.y;
-                    const distSq = dx * dx + dy * dy || 1;
+            // Build quad tree
+            const bounds = { x: 0, y: 0, width: width, height: height };
+            const quadTree = new QuadTree(bounds);
+            nodes.forEach(node => quadTree.insert(node));
+
+            // Calculate repulsion using Barnes-Hut with force normalization
+            let totalForceMagnitude = 0;
+            let forceCount = 0;
+            
+            // First pass: calculate average force magnitude
+            nodes.forEach(node => {
+                quadTree.calculateForces(node, Math.max(0.3, 0.7 - nodes.length / 50000), (dx, dy, distSq, mass) => {
                     const dist = Math.sqrt(distSq);
-                    
-                    const force = (spacing / distSq) * forceMultiplier;
+                    const adaptiveMass = Math.min(mass, Math.sqrt(nodes.length));
+                    const force = (spacing * adaptiveMass / (distSq + 100)) * adaptiveForceMultiplier;
+                    totalForceMagnitude += Math.abs(force);
+                    forceCount++;
+                });
+            });
+            
+            const avgForce = forceCount > 0 ? totalForceMagnitude / forceCount : 1;
+            const forceScale = Math.min(1, Math.max(0.1, 10 / avgForce)); // Normalize forces
+            
+            // Debug force info
+            if (Math.random() < 0.01) { // Log occasionally
+                status.textContent = `Forces: avg=${avgForce.toFixed(3)} scale=${forceScale.toFixed(3)} nodes=${nodes.length}`;
+            }
+            
+            // Second pass: apply normalized forces
+            nodes.forEach(node => {
+                quadTree.calculateForces(node, Math.max(0.3, 0.7 - nodes.length / 50000), (dx, dy, distSq, mass) => {
+                    const dist = Math.sqrt(distSq);
+                    const adaptiveMass = Math.min(mass, Math.sqrt(nodes.length));
+                    const force = (spacing * adaptiveMass / (distSq + 100)) * adaptiveForceMultiplier * forceScale;
                     const fx = (dx / dist) * force;
                     const fy = (dy / dist) * force;
 
-                    n1.vx -= fx;
-                    n1.vy -= fy;
-                    n2.vx += fx;
-                    n2.vy += fy;
-                }
-            }
-            
+                    node.vx -= fx;
+                    node.vy -= fy;
+                });
+            });
+
+            // Add rotation force
             if (rotationSpeed > 0) {
                 nodes.forEach(n => {
                     const dx = n.x - width/2;
                     const dy = n.y - height/2;
                     const dist = Math.sqrt(dx*dx + dy*dy) || 1;
-                    n.vx += (-dy / dist) * rotationSpeed * dist * forceMultiplier;
-                    n.vy += (dx / dist) * rotationSpeed * dist * forceMultiplier;
+                    n.vx += (-dy / dist) * rotationSpeed * dist * adaptiveForceMultiplier;
+                    n.vy += (dx / dist) * rotationSpeed * dist * adaptiveForceMultiplier;
                 });
             }
 
+            // Add link attraction
             filteredLinks.forEach(link => {
                 const s = nodes.find(n => n.id === link.source);
                 const t = nodes.find(n => n.id === link.target);
                 if (!s || !t) return;
                 const dx = t.x - s.x;
                 const dy = t.y - s.y;
-                const strength = link.similarity * 0.02 * forceMultiplier;
+                const strength = link.similarity * 0.02 * adaptiveForceMultiplier;
                 s.vx += dx * strength;
                 s.vy += dy * strength;
                 t.vx -= dx * strength;
@@ -325,18 +457,20 @@
 
                 const dx = width / 2 - n.x;
                 const dy = height / 2 - n.y;
-                n.vx += dx * 0.002 * forceMultiplier;
-                n.vy += dy * 0.002 * forceMultiplier;
+                 n.vx += dx * 0.002 * adaptiveForceMultiplier;
+                 n.vy += dy * 0.002 * adaptiveForceMultiplier;
 
-                n.vx *= friction;
-                n.vy *= friction;
+                 n.vx *= friction;
+                 n.vy *= friction;
 
-                n.x += n.vx;
-                n.y += n.vy;
-                
-                totalMove += Math.abs(n.vx) + Math.abs(n.vy);
-                n.x = Math.max(10, Math.min(width - 10, n.x));
-                n.y = Math.max(10, Math.min(height - 10, n.y));
+                 n.x += n.vx;
+                 n.y += n.vy;
+                 
+                 totalMove += Math.abs(n.vx) + Math.abs(n.vy);
+                 // Relaxed boundaries for larger graphs
+                 const margin = Math.max(50, Math.min(width, height) * 0.1);
+                 n.x = Math.max(margin, Math.min(width - margin, n.x));
+                 n.y = Math.max(margin, Math.min(height - margin, n.y));
             });
 
             kineticEnergy = totalMove;
@@ -559,11 +693,11 @@
             transform.k = Math.min(50, transform.k);
         });
 
-        // Zoom Out button (2x per click)
-        zoomOutBtn.addEventListener('click', () => {
-            transform.k /= 2;
-            transform.k = Math.max(0.02, transform.k);
-        });
+         // Zoom Out button (2x per click)
+         zoomOutBtn.addEventListener('click', () => {
+             transform.k /= 2;
+             transform.k = Math.max(0.002, transform.k); // Allow much smaller zoom
+         });
 
         // Zoom Reset button
         zoomResetBtn.addEventListener('click', () => {
@@ -693,13 +827,15 @@
                 simulationAlpha = Math.min(simulationAlpha, 0.3);
                 draggedNode = found;
                 selectNode(found);
-            } else {
-                isPanning = true;
-                simulationAlpha = 0.1;
-                lastMouse = { x: e.clientX, y: e.clientY };
-                selectedNode = null;
-                detailsPanel.style.display = 'none';
-            }
+             } else {
+                 isPanning = true;
+                 simulationAlpha = 0.1;
+                 lastMouse = { x: e.clientX, y: e.clientY };
+                 selectedNode = null;
+                 detailsPanel.style.display = 'none';
+                 // Hide bottom display
+                 document.getElementById('selected-node-info').style.display = 'none';
+             }
         });
 
         window.addEventListener('mousemove', (e) => {
@@ -730,16 +866,22 @@
             e.preventDefault();
             const zoomSpeed = 0.001;
             const delta = -e.deltaY;
-            const factor = Math.pow(1.1, delta / 100);
-            transform.k *= factor;
-            transform.k = Math.max(0.1, Math.min(10, transform.k));
+             const factor = Math.pow(1.1, delta / 100);
+             transform.k *= factor;
+             transform.k = Math.max(0.002, Math.min(100, transform.k)); // Wider zoom range
         }, { passive: false });
 
-        function selectNode(n) {
-            selectedNode = n;
-            detailsPanel.style.display = 'block';
-            
-            nodeInfo.innerHTML = `
+         function selectNode(n) {
+             selectedNode = n;
+             detailsPanel.style.display = 'block';
+             
+             // Update bottom display
+             const selectedInfo = document.getElementById('selected-node-info');
+             const selectedPath = document.getElementById('selected-node-path');
+             selectedInfo.style.display = 'flex';
+             selectedPath.textContent = `${n.name} - ${n.path}`;
+             
+             nodeInfo.innerHTML = `
                 <div style="background:#313244; padding:10px; border-radius:4px; margin-bottom:1rem;">
                     <h2 style="margin:0; font-size:1.1rem; color:#f5c2e7;">Full Path:</h2>
                     <div id="full-path-display" style="font-size:0.8rem; margin-top:5px; word-break:break-all; color:#a6adc8; font-family:monospace; background:#181825; padding:8px; border-radius:4px; border:1px solid #45475a;">${n.path}</div>

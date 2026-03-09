@@ -133,8 +133,12 @@ func calculateHash(path string) string {
 	}
 	defer f.Close()
 
+	// Hash only first 4KB to prevent large file slowdown
+	limit := 4 * 1024 // 4KB
+	limitedReader := io.LimitReader(f, int64(limit))
+
 	h := sha256.New()
-	if _, err := io.Copy(h, f); err != nil {
+	if _, err := io.Copy(h, limitedReader); err != nil {
 		return ""
 	}
 	return hex.EncodeToString(h.Sum(nil))

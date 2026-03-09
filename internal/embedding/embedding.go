@@ -4,7 +4,6 @@ import (
 	"encoding/hex"
 	"file_graph/internal/models"
 	"math"
-	"os"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -50,52 +49,32 @@ func BuildVector(n models.FileNode) []float64 {
 
 	v := make([]float64, 26) // 26 dimensions total
 
-	// 0. Size Log10
+	// 0. Size (log scale)
 	if n.Size > 0 {
-		v[0] = math.Log10(float64(n.Size))
+		v[0] = math.Log(float64(n.Size)+1) / 20.0 // Normalize
 	}
 
-	// 1. Size Mod 1000
-	v[1] = float64(n.SizeLast3) / 1000.0
-
-	// 2. Folder Depth (Approximate by separator count)
-	v[2] = float64(strings.Count(n.Path, string(os.PathSeparator))) / 10.0
-
-	// 3. Name Length (cap at 100)
-	v[3] = math.Min(float64(len(n.Name)), 100.0) / 100.0
-
-	// 4. Extension Hash
-	ext := filepath.Ext(n.Name)
-	if len(ext) > 0 {
-		// Simple sum hash of extension chars
-		sum := 0
-		for _, c := range ext {
-			sum += int(c)
-		}
-		v[4] = float64(sum%255) / 255.0
+	// 1. SizeLast3 (normalized 0-1)
+	if n.Size > 0 {
+		v[1] = float64(n.SizeLast3) / 999.0
 	}
 
-	// 5, 6, 7. Char Stats
-	v[5] = float64(strings.Count(n.Name, ".")) / 5.0
-	v[6] = float64(strings.Count(n.Name, "_")) / 5.0
-	digitCount := 0
-	for _, c := range n.Name {
-		if c >= '0' && c <= '9' {
-			digitCount++
-		}
-	}
-	v[7] = float64(digitCount) / 10.0
+	// 2. Folder Depth (calculate from path)
+	depth := strings.Count(n.Path, string(filepath.Separator))
+	v[2] = float64(depth) / 20.0
 
-	// 8, 9, 10. Time Attributes
-	v[8] = float64(n.ModifiedAt.Hour()) / 24.0
-	v[9] = float64(n.ModifiedAt.Weekday()) / 7.0
-	v[10] = float64(n.ModifiedAt.Month()) / 12.0
+	// 8-10. ModifiedAt components
+	hour := n.ModifiedAt.Hour()
+	weekday := int(n.ModifiedAt.Weekday())
+	month := int(n.ModifiedAt.Month())
+	v[8] = float64(hour) / 23.0
+	v[9] = float64(weekday) / 6.0
+	v[10] = float64(month) / 11.0
 
 	// 11-15. First 5 chars of name
-	nameRunes := []rune(n.Name)
 	for i := 0; i < 5; i++ {
-		if i < len(nameRunes) {
-			v[11+i] = float64(nameRunes[i]) / 255.0
+		if i < len(n.Name) {
+			v[11+i] = float64(n.Name[i]) / 255.0
 		}
 	}
 
@@ -117,9 +96,27 @@ func BuildVector(n models.FileNode) []float64 {
 func CalculateRelations(nodes []models.FileNode) []models.Relation {
 	var links []models.Relation
 	thresh := GetThreshold()
+	maxNeighbors := 5
+
+	if len(nodes) == 0 {
+		return links
+	}
+
+	// For large datasets, use hash-based spatial bucketing
+	if len(nodes) > 1000 {
+		return calculateRelationsBucketed(nodes, thresh, maxNeighbors)
+	}
+
+	// Original brute-force for small datasets
+	neighborMatrix := make([][]models.Relation, len(nodes))
 
 	for i := 0; i < len(nodes); i++ {
-		for j := i + 1; j < len(nodes); j++ {
+		var bestNeighbors []models.Relation
+
+		for j := 0; j < len(nodes); j++ {
+			if i == j {
+				continue
+			}
 
 			// Allow folder-to-file links in same folder
 			dirI := filepath.Dir(nodes[i].Path)
@@ -135,16 +132,16 @@ func CalculateRelations(nodes []models.FileNode) []models.Relation {
 
 			// Folder proximity bonus - same folder gets strong bonus
 			if sameFolder {
-				sim += 0.4 // Strong bonus for same folder
+				sim += 0.4
 			}
 
-			// Filename prefix match bonus (works cross-folder)
+			// Filename prefix match bonus
 			prefixLen := commonPrefixLen(nodes[i].Name, nodes[j].Name)
 			if prefixLen >= 3 {
 				sim += float64(prefixLen) * 0.05
 			}
 
-			// Filename suffix match (before extension)
+			// Filename suffix match
 			extI := filepath.Ext(nodes[i].Name)
 			extJ := filepath.Ext(nodes[j].Name)
 			baseI := nodes[i].Name[:len(nodes[i].Name)-len(extI)]
@@ -154,9 +151,8 @@ func CalculateRelations(nodes []models.FileNode) []models.Relation {
 				sim += float64(suffixLen) * 0.03
 			}
 
-			// Number proximity bonus - files with similar numbers (e.g., file1.txt, file2.txt)
-			numBonus := numberProximity(nodes[i].Name, nodes[j].Name)
-			sim += numBonus
+			// Number proximity bonus
+			sim += numberProximity(nodes[i].Name, nodes[j].Name)
 
 			// Extension grouping bonus
 			if extI == extJ && extI != "" {
@@ -174,15 +170,254 @@ func CalculateRelations(nodes []models.FileNode) []models.Relation {
 			}
 
 			if sim > thresh {
-				links = append(links, models.Relation{
+				relation := models.Relation{
 					Source:     nodes[i].ID,
 					Target:     nodes[j].ID,
-					Similarity: math.Min(sim, 1.0), // Cap at 1.0
-				})
+					Similarity: math.Min(sim, 1.0),
+				}
+
+				// Insert sorted by similarity
+				bestNeighbors = insertSorted(bestNeighbors, relation, maxNeighbors)
+			}
+		}
+		neighborMatrix[i] = bestNeighbors
+	}
+
+	// Collect all relations, deduplicate
+	linkMap := make(map[string]models.Relation)
+	for _, neighbors := range neighborMatrix {
+		for _, rel := range neighbors {
+			key := relationKey(rel.Source, rel.Target)
+			linkMap[key] = rel
+		}
+	}
+
+	// Convert map to slice
+	for _, rel := range linkMap {
+		links = append(links, rel)
+	}
+	return links
+}
+
+// Hash-based spatial bucketing for large datasets
+func calculateRelationsBucketed(nodes []models.FileNode, thresh float64, maxNeighbors int) []models.Relation {
+	if len(nodes) == 0 {
+		return []models.Relation{}
+	}
+
+	// Create hash buckets - use first 4 bytes (8 hex chars) of SHA-256
+	buckets := make(map[string][]int)
+	for i, node := range nodes {
+		if node.Hash != "" && len(node.Hash) >= 8 {
+			bucketKey := node.Hash[:8] // First 4 bytes
+			buckets[bucketKey] = append(buckets[bucketKey], i)
+		}
+	}
+
+	// Also create folder-based buckets for folder proximity
+	folderBuckets := make(map[string][]int)
+	for i, node := range nodes {
+		folder := filepath.Dir(node.Path)
+		folderBuckets[folder] = append(folderBuckets[folder], i)
+	}
+
+	var links []models.Relation
+	processedPairs := make(map[string]bool)
+
+	// Compare within each bucket
+	for _, bucket := range buckets {
+		if len(bucket) > 1 {
+			bucketLinks := compareBucket(nodes, bucket, thresh, maxNeighbors, processedPairs)
+			links = append(links, bucketLinks...)
+		}
+	}
+
+	// Compare within each folder bucket
+	for _, bucket := range folderBuckets {
+		if len(bucket) > 1 {
+			bucketLinks := compareBucket(nodes, bucket, thresh, maxNeighbors, processedPairs)
+			links = append(links, bucketLinks...)
+		}
+	}
+
+	// For small buckets (<3 files), also check adjacent buckets
+	for bucketKey, bucket := range buckets {
+		if len(bucket) < 3 {
+			adjacentLinks := compareToAdjacentBuckets(nodes, bucket, buckets, bucketKey, thresh, maxNeighbors, processedPairs)
+			links = append(links, adjacentLinks...)
+		}
+	}
+
+	return links
+}
+
+func compareBucket(nodes []models.FileNode, bucket []int, thresh float64, maxNeighbors int, processedPairs map[string]bool) []models.Relation {
+	var links []models.Relation
+
+	for _, i := range bucket {
+		var bestNeighbors []models.Relation
+
+		for _, j := range bucket {
+			if i == j {
+				continue
+			}
+
+			key := relationKey(nodes[i].ID, nodes[j].ID)
+			if processedPairs[key] {
+				continue
+			}
+			processedPairs[key] = true
+
+			sim := cosineSimilarity(nodes[i].Vector, nodes[j].Vector)
+			sim = applyBonuses(nodes[i], nodes[j], sim)
+
+			if sim > thresh {
+				relation := models.Relation{
+					Source:     nodes[i].ID,
+					Target:     nodes[j].ID,
+					Similarity: math.Min(sim, 1.0),
+				}
+				bestNeighbors = insertSorted(bestNeighbors, relation, maxNeighbors)
+			}
+		}
+
+		links = append(links, bestNeighbors...)
+	}
+
+	return links
+}
+
+func compareToAdjacentBuckets(nodes []models.FileNode, currentBucket []int, buckets map[string][]int, currentBucketKey string, thresh float64, maxNeighbors int, processedPairs map[string]bool) []models.Relation {
+	var links []models.Relation
+
+	// Get adjacent buckets by modifying the bucket key slightly
+	adjacentBuckets := []string{
+		currentBucketKey[:7] + "0", // Change last character
+		currentBucketKey[:7] + "1",
+		currentBucketKey[:6] + "00", // Change last 2 characters
+	}
+
+	for _, adjKey := range adjacentBuckets {
+		if adjBucket, exists := buckets[adjKey]; exists {
+			for _, i := range currentBucket {
+				var bestNeighbors []models.Relation
+
+				for _, j := range adjBucket {
+					if i == j {
+						continue
+					}
+
+					key := relationKey(nodes[i].ID, nodes[j].ID)
+					if processedPairs[key] {
+						continue
+					}
+					processedPairs[key] = true
+
+					sim := cosineSimilarity(nodes[i].Vector, nodes[j].Vector)
+					sim = applyBonuses(nodes[i], nodes[j], sim)
+
+					if sim > thresh {
+						relation := models.Relation{
+							Source:     nodes[i].ID,
+							Target:     nodes[j].ID,
+							Similarity: math.Min(sim, 1.0),
+						}
+						bestNeighbors = insertSorted(bestNeighbors, relation, maxNeighbors)
+					}
+				}
+
+				links = append(links, bestNeighbors...)
 			}
 		}
 	}
+
 	return links
+}
+
+func applyBonuses(a, b models.FileNode, similarity float64) float64 {
+	sim := similarity
+
+	// Allow folder-to-file links in same folder
+	dirA := filepath.Dir(a.Path)
+	dirB := filepath.Dir(b.Path)
+	sameFolder := dirA == dirB
+
+	// Skip cross-folder folder-to-file links
+	if (a.IsFolder != b.IsFolder) && !sameFolder {
+		return sim
+	}
+
+	// Folder proximity bonus - same folder gets strong bonus
+	if sameFolder {
+		sim += 0.4
+	}
+
+	// Filename prefix match bonus
+	prefixLen := commonPrefixLen(a.Name, b.Name)
+	if prefixLen >= 3 {
+		sim += float64(prefixLen) * 0.05
+	}
+
+	// Filename suffix match
+	extA := filepath.Ext(a.Name)
+	extB := filepath.Ext(b.Name)
+	baseA := a.Name[:len(a.Name)-len(extA)]
+	baseB := b.Name[:len(b.Name)-len(extB)]
+	suffixLen := commonSuffixLen(baseA, baseB)
+	if suffixLen >= 3 {
+		sim += float64(suffixLen) * 0.03
+	}
+
+	// Number proximity bonus
+	sim += numberProximity(a.Name, b.Name)
+
+	// Extension grouping bonus
+	if extA == extB && extA != "" {
+		sim += 0.15
+	}
+
+	// Same name last 4 chars bonus
+	if a.NameLast4 == b.NameLast4 && a.NameLast4 != "" {
+		sim += 0.1
+	}
+
+	// Same size last 3 digits bonus
+	if a.SizeLast3 == b.SizeLast3 && a.Size > 0 {
+		sim += 0.05
+	}
+
+	return sim
+}
+
+func relationKey(a, b string) string {
+	if a < b {
+		return a + "|" + b
+	}
+	return b + "|" + a
+}
+
+func insertSorted(neighbors []models.Relation, rel models.Relation, maxSize int) []models.Relation {
+	// Find insertion position
+	idx := len(neighbors)
+	for i, n := range neighbors {
+		if rel.Similarity > n.Similarity {
+			idx = i
+			break
+		}
+	}
+
+	// Insert
+	if idx < maxSize {
+		neighbors = append(neighbors, models.Relation{})
+		copy(neighbors[idx+1:], neighbors[idx:])
+		neighbors[idx] = rel
+
+		// Keep only top maxSize
+		if len(neighbors) > maxSize {
+			neighbors = neighbors[:maxSize]
+		}
+	}
+	return neighbors
 }
 
 func numberProximity(name1, name2 string) float64 {
@@ -232,38 +467,42 @@ func abs(n int) int {
 
 func commonPrefixLen(s1, s2 string) int {
 	i := 0
-	for ; i < len(s1) && i < len(s2); i++ {
-		if s1[i] != s2[i] {
-			break
-		}
+	for i < len(s1) && i < len(s2) && s1[i] == s2[i] {
+		i++
 	}
 	return i
 }
 
 func commonSuffixLen(s1, s2 string) int {
-	i, j := len(s1)-1, len(s2)-1
+	i1, i2 := len(s1)-1, len(s2)-1
 	count := 0
-	for ; i >= 0 && j >= 0; i, j = i-1, j-1 {
-		if s1[i] != s2[j] {
-			break
-		}
+	for i1 >= 0 && i2 >= 0 && s1[i1] == s2[i2] {
 		count++
+		i1--
+		i2--
 	}
 	return count
 }
 
-func cosineSimilarity(v1, v2 []float64) float64 {
-	if len(v1) != len(v2) {
+func cosineSimilarity(a, b []float64) float64 {
+	if len(a) != len(b) || len(a) == 0 {
 		return 0
 	}
-	var dot, mag1, mag2 float64
-	for i := range v1 {
-		dot += v1[i] * v2[i]
-		mag1 += v1[i] * v1[i]
-		mag2 += v2[i] * v2[i]
+
+	dotProduct := 0.0
+	magnitudeA := 0.0
+	magnitudeB := 0.0
+
+	for i := range a {
+		dotProduct += a[i] * b[i]
+		magnitudeA += a[i] * a[i]
+		magnitudeB += b[i] * b[i]
 	}
-	if mag1 == 0 || mag2 == 0 {
+
+	if magnitudeA == 0 || magnitudeB == 0 {
 		return 0
 	}
-	return dot / (math.Sqrt(mag1) * math.Sqrt(mag2))
+
+	cosine := dotProduct / (math.Sqrt(magnitudeA) * math.Sqrt(magnitudeB))
+	return math.Max(0, math.Min(cosine, 1.0))
 }
