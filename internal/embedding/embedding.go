@@ -6,8 +6,31 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"regexp"
+	"strconv"
 	"strings"
+	"sync"
 )
+
+var (
+	threshold   float64 = 0.75
+	thresholdMu sync.RWMutex
+	numberRegex = regexp.MustCompile(`\d+`)
+)
+
+func SetThreshold(t float64) {
+	thresholdMu.Lock()
+	defer thresholdMu.Unlock()
+	if t > 0 && t <= 1.0 {
+		threshold = t
+	}
+}
+
+func GetThreshold() float64 {
+	thresholdMu.RLock()
+	defer thresholdMu.RUnlock()
+	return threshold
+}
 
 func BuildVector(n models.FileNode) []float64 {
 	// 25-Dimensional Vector Construction
@@ -93,30 +116,140 @@ func BuildVector(n models.FileNode) []float64 {
 
 func CalculateRelations(nodes []models.FileNode) []models.Relation {
 	var links []models.Relation
-	threshold := 0.85
-	
+	thresh := GetThreshold()
+
 	for i := 0; i < len(nodes); i++ {
 		for j := i + 1; j < len(nodes); j++ {
+
+			// Allow folder-to-file links in same folder
+			dirI := filepath.Dir(nodes[i].Path)
+			dirJ := filepath.Dir(nodes[j].Path)
+			sameFolder := dirI == dirJ
+
+			// Skip cross-folder folder-to-file links
+			if (nodes[i].IsFolder != nodes[j].IsFolder) && !sameFolder {
+				continue
+			}
+
 			sim := cosineSimilarity(nodes[i].Vector, nodes[j].Vector)
-			
-			// Also check explicit attributes
+
+			// Folder proximity bonus - same folder gets strong bonus
+			if sameFolder {
+				sim += 0.4 // Strong bonus for same folder
+			}
+
+			// Filename prefix match bonus (works cross-folder)
+			prefixLen := commonPrefixLen(nodes[i].Name, nodes[j].Name)
+			if prefixLen >= 3 {
+				sim += float64(prefixLen) * 0.05
+			}
+
+			// Filename suffix match (before extension)
+			extI := filepath.Ext(nodes[i].Name)
+			extJ := filepath.Ext(nodes[j].Name)
+			baseI := nodes[i].Name[:len(nodes[i].Name)-len(extI)]
+			baseJ := nodes[j].Name[:len(nodes[j].Name)-len(extJ)]
+			suffixLen := commonSuffixLen(baseI, baseJ)
+			if suffixLen >= 3 {
+				sim += float64(suffixLen) * 0.03
+			}
+
+			// Number proximity bonus - files with similar numbers (e.g., file1.txt, file2.txt)
+			numBonus := numberProximity(nodes[i].Name, nodes[j].Name)
+			sim += numBonus
+
+			// Extension grouping bonus
+			if extI == extJ && extI != "" {
+				sim += 0.15
+			}
+
+			// Same name last 4 chars bonus
 			if nodes[i].NameLast4 == nodes[j].NameLast4 && nodes[i].NameLast4 != "" {
 				sim += 0.1
 			}
+
+			// Same size last 3 digits bonus
 			if nodes[i].SizeLast3 == nodes[j].SizeLast3 && nodes[i].Size > 0 {
 				sim += 0.05
 			}
-			
-			if sim > threshold {
+
+			if sim > thresh {
 				links = append(links, models.Relation{
 					Source:     nodes[i].ID,
 					Target:     nodes[j].ID,
-					Similarity: sim,
+					Similarity: math.Min(sim, 1.0), // Cap at 1.0
 				})
 			}
 		}
 	}
 	return links
+}
+
+func numberProximity(name1, name2 string) float64 {
+	nums1 := extractNumbers(name1)
+	nums2 := extractNumbers(name2)
+
+	if len(nums1) == 0 || len(nums2) == 0 {
+		return 0
+	}
+
+	// Compare each number pair
+	for _, n1 := range nums1 {
+		for _, n2 := range nums2 {
+			diff := float64(abs(n1 - n2))
+			if diff == 0 && n1 > 0 {
+				// Same number - reduced bonus
+				return 0.15
+			} else if diff == 1 {
+				// Adjacent numbers (1,2) or (2,3) - small bonus
+				return 0.08
+			} else if diff <= 3 {
+				// Very close numbers within 3 - tiny bonus
+				return 0.03
+			}
+		}
+	}
+	return 0
+}
+
+func extractNumbers(s string) []int {
+	matches := numberRegex.FindAllString(s, -1)
+	var nums []int
+	for _, m := range matches {
+		if n, err := strconv.Atoi(m); err == nil {
+			nums = append(nums, n)
+		}
+	}
+	return nums
+}
+
+func abs(n int) int {
+	if n < 0 {
+		return -n
+	}
+	return n
+}
+
+func commonPrefixLen(s1, s2 string) int {
+	i := 0
+	for ; i < len(s1) && i < len(s2); i++ {
+		if s1[i] != s2[i] {
+			break
+		}
+	}
+	return i
+}
+
+func commonSuffixLen(s1, s2 string) int {
+	i, j := len(s1)-1, len(s2)-1
+	count := 0
+	for ; i >= 0 && j >= 0; i, j = i-1, j-1 {
+		if s1[i] != s2[j] {
+			break
+		}
+		count++
+	}
+	return count
 }
 
 func cosineSimilarity(v1, v2 []float64) float64 {

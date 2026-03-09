@@ -125,10 +125,18 @@
             <input type="text" id="search-input" placeholder="Search filename... (e.g. 'main' or '.go')" style="width: 100%;">
         </div>
         <div style="display: flex; align-items: center; gap: 10px; margin-right: 20px;">
+            <label style="font-size: 0.8rem;">Links:</label>
+            <input type="range" id="links-slider" min="1" max="100" value="100">
+            <span id="links-value" style="font-size:0.75rem; min-width:35px;">100%</span>
+            <button id="links-reset-btn" style="background:#313244; color:#cdd6f4; border:1px solid #45475a; padding:2px 6px; border-radius:4px; cursor:pointer; font-size:0.7rem;">Reset</button>
             <label style="font-size: 0.8rem;">Spacing</label>
             <input type="range" id="spacing-slider" min="100" max="2000" value="500">
             <label style="font-size: 0.8rem;">Rotate</label>
             <input type="range" id="rotate-slider" min="0" max="50" value="0">
+            <button id="zoom-in-btn" style="background:#313244; color:#cdd6f4; border:1px solid #45475a; padding:2px 8px; border-radius:4px; cursor:pointer; font-size:0.8rem;">Zoom+</button>
+            <button id="zoom-out-btn" style="background:#313244; color:#cdd6f4; border:1px solid #45475a; padding:2px 8px; border-radius:4px; cursor:pointer; font-size:0.8rem;">Zoom-</button>
+            <button id="zoom-reset-btn" style="background:#313244; color:#cdd6f4; border:1px solid #45475a; padding:2px 6px; border-radius:4px; cursor:pointer; font-size:0.7rem;">1:1</button>
+            <button id="shake-btn" style="background:#f38ba8; color:#11111b; border:1px solid #f38ba8; padding:2px 8px; border-radius:4px; cursor:pointer; font-size:0.8rem;">Shake</button>
         </div>
         <button id="scan-btn">Scan Files</button>
         <button id="restart-btn" style="background:#f9e2af; color:#11111b; margin-left:10px;">Restart</button>
@@ -175,12 +183,19 @@
         const killBtn = document.getElementById('kill-btn');
         const spacingSlider = document.getElementById('spacing-slider');
         const rotateSlider = document.getElementById('rotate-slider');
+        const linksSlider = document.getElementById('links-slider');
+        const linksValue = document.getElementById('links-value');
+        const linksResetBtn = document.getElementById('links-reset-btn');
+        const zoomInBtn = document.getElementById('zoom-in-btn');
+        const zoomOutBtn = document.getElementById('zoom-out-btn');
+        const zoomResetBtn = document.getElementById('zoom-reset-btn');
+        const shakeBtn = document.getElementById('shake-btn');
         const detailsPanel = document.getElementById('details-panel');
         const nodeInfo = document.getElementById('node-info');
         const relatedBody = document.getElementById('related-body');
-                const status = document.getElementById('status');
-                const scanProgress = document.getElementById('scan-progress');
-                const heartbeatDisplay = document.getElementById('heartbeat');
+        const status = document.getElementById('status');
+        const scanProgress = document.getElementById('scan-progress');
+        const heartbeatDisplay = document.getElementById('heartbeat');
         
                 let progressInterval = null;
         
@@ -216,6 +231,8 @@
         let transform = { x: 0, y: 0, k: 1 };
         let isPanning = false;
         let lastMouse = { x: 0, y: 0 };
+        let linksFilter = 100; // percentage of top links to show
+        let filteredLinks = []; // computed filtered links
 
         function resize() {
             width = canvas.parentElement.clientWidth;
@@ -278,7 +295,7 @@
                 });
             }
 
-            links.forEach(link => {
+            filteredLinks.forEach(link => {
                 const s = nodes.find(n => n.id === link.source);
                 const t = nodes.find(n => n.id === link.target);
                 if (!s || !t) return;
@@ -327,7 +344,7 @@
             ctx.translate(-width/2, -height/2);
 
             // Draw links
-            links.forEach(link => {
+            filteredLinks.forEach(link => {
                 const s = nodes.find(n => n.id === link.source);
                 const t = nodes.find(n => n.id === link.target);
                 if (s && t) {
@@ -452,6 +469,7 @@
                     vy: 0
                 }));
                 links = data.links || [];
+                updateFilteredLinks(); // Initialize filtered links
                 
                 if (nodes.length === 0) {
                     status.textContent = 'No files found in that directory.';
@@ -533,6 +551,66 @@
             }
         });
 
+        // Zoom In button (2x per click, max 50x)
+        zoomInBtn.addEventListener('click', () => {
+            transform.k *= 2;
+            transform.k = Math.min(50, transform.k);
+        });
+
+        // Zoom Out button (2x per click)
+        zoomOutBtn.addEventListener('click', () => {
+            transform.k /= 2;
+            transform.k = Math.max(0.02, transform.k);
+        });
+
+        // Zoom Reset button
+        zoomResetBtn.addEventListener('click', () => {
+            transform.k = 1;
+            transform.x = 0;
+            transform.y = 0;
+        });
+
+        // Links filter slider
+        linksSlider.addEventListener('input', (e) => {
+            linksFilter = parseInt(e.target.value);
+            linksValue.textContent = linksFilter + '%';
+            updateFilteredLinks();
+            simulationAlpha = 0.5; // Wake up to recalculate positions
+        });
+
+        // Links Reset button
+        linksResetBtn.addEventListener('click', () => {
+            linksSlider.value = 100;
+            linksFilter = 100;
+            linksValue.textContent = '100%';
+            updateFilteredLinks();
+            simulationAlpha = 0.5;
+        });
+
+        function updateFilteredLinks() {
+            if (links.length === 0) {
+                filteredLinks = [];
+                return;
+            }
+            // Sort links by similarity and keep only top X%
+            const sorted = [...links].sort((a, b) => b.similarity - a.similarity);
+            const keepCount = Math.ceil(sorted.length * linksFilter / 100);
+            const threshold = sorted[keepCount - 1]?.similarity || 0;
+            filteredLinks = sorted.filter(l => l.similarity >= threshold);
+            status.textContent = `Links: ${filteredLinks.length} / ${links.length} (${linksFilter}%)`;
+        }
+
+        // Shake button - adds random small energy to all nodes
+        shakeBtn.addEventListener('click', () => {
+            uiLog('Click Shake');
+            nodes.forEach(n => {
+                n.vx += (Math.random() - 0.5) * 10;
+                n.vy += (Math.random() - 0.5) * 10;
+            });
+            simulationAlpha = 0.8;
+            status.textContent = 'Shaking!';
+        });
+
         canvas.addEventListener('mousedown', (e) => {
             const rect = canvas.getBoundingClientRect();
             // Convert screen coordinates to world coordinates
@@ -550,12 +628,13 @@
 
             if (found) {
                 uiLog(`Select Node: ${found.name}`);
-                simulationAlpha = 0.5; // Wake up simulation slightly
+                // Calm the simulation - don't add energy
+                simulationAlpha = Math.min(simulationAlpha, 0.3);
                 draggedNode = found;
                 selectNode(found);
             } else {
                 isPanning = true;
-                simulationAlpha = 0.1; // Wake up a tiny bit for panning
+                simulationAlpha = 0.1;
                 lastMouse = { x: e.clientX, y: e.clientY };
                 selectedNode = null;
                 detailsPanel.style.display = 'none';
@@ -601,15 +680,27 @@
             
             nodeInfo.innerHTML = `
                 <div style="background:#313244; padding:10px; border-radius:4px; margin-bottom:1rem;">
-                    <h2 style="margin:0; font-size:1.1rem; color:#f5c2e7;">Full Name:</h2>
-                    <div style="font-size:0.95rem; margin-top:5px; word-break:break-all; font-weight:bold;">${n.name}</div>
+                    <h2 style="margin:0; font-size:1.1rem; color:#f5c2e7;">Full Path:</h2>
+                    <div id="full-path-display" style="font-size:0.8rem; margin-top:5px; word-break:break-all; color:#a6adc8; font-family:monospace; background:#181825; padding:8px; border-radius:4px; border:1px solid #45475a;">${n.path}</div>
+                    <button id="copy-path-btn" style="background:#89b4fa; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-weight:bold; color:#11111b; margin-top:8px; width:100%;">Copy Path</button>
+                    <button onclick="openPath('${n.path.replace(/\\/g, '\\\\')}')" style="background:#a6e3a1; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-weight:bold; color:#11111b; margin-top:8px; width:100%;">Open in Explorer</button>
                 </div>
-                <p><strong>Path:</strong> <span style="font-size:0.8rem">${n.path}</span></p>
-                <button onclick="openPath('${n.path.replace(/\\/g, '\\\\')}')" style="background:#a6e3a1; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-weight:bold; color:#11111b; margin-bottom:1rem;">Open in Explorer</button>
+                <div style="background:#313244; padding:10px; border-radius:4px; margin-bottom:1rem;">
+                    <h2 style="margin:0; font-size:1rem; color:#f5c2e7;">Name:</h2>
+                    <div style="font-size:0.9rem; margin-top:5px; word-break:break-all; font-weight:bold;">${n.name}</div>
+                </div>
                 <p><strong>Size:</strong> ${formatSize(n.size)} (Last3: ${n.size_last_3})</p>
                 <p><strong>Modified:</strong> ${new Date(n.modified_at).toLocaleString()}</p>
-                <p><strong>Hash:</strong> <span style="font-size:0.7rem; color:#a6adc8; word-break:break-all;">${n.hash || 'N/A'}</span></p>
+                <p><strong>Is Folder:</strong> ${n.is_folder ? 'Yes' : 'No'}</p>
             `;
+            
+            // Add copy path functionality
+            document.getElementById('copy-path-btn').addEventListener('click', function() {
+                navigator.clipboard.writeText(n.path).then(() => {
+                    this.textContent = 'Copied!';
+                    setTimeout(() => { this.textContent = 'Copy Path'; }, 1500);
+                });
+            });
 
             // Find related
             const related = links

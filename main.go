@@ -1,8 +1,10 @@
 package main
 
 import (
+	"file_graph/internal/embedding"
 	"file_graph/internal/handlers"
 	"file_graph/internal/logger"
+	"file_graph/internal/scanner"
 	"flag"
 	"fmt"
 	"log"
@@ -11,11 +13,60 @@ import (
 	"path/filepath"
 )
 
-func main() {
-	logger.Println("--- START ---")
+const (
+	DefaultThreshold = 0.75
+	DefaultBatchSize = 1000
+	MaxFilesDefault  = 5000
+)
 
+var (
+	ScanThreshold float64
+	BatchSize     int
+	LowRAM        bool
+	Ram8g         bool
+	Ram16g        bool
+)
+
+func applyMemoryProfile() {
+	maxFiles := MaxFilesDefault
+	batch := BatchSize
+	threshold := ScanThreshold
+
+	if LowRAM {
+		batch = 300
+		maxFiles = 2000
+		threshold = 0.6
+		fmt.Println("[Profile] Low RAM mode: batch=300, threshold=0.6")
+	} else if Ram8g {
+		batch = 500
+		maxFiles = 3500
+		threshold = 0.65
+		fmt.Println("[Profile] 8GB RAM mode: batch=500, threshold=0.65")
+	} else if Ram16g {
+		batch = 800
+		maxFiles = 4500
+		threshold = 0.7
+		fmt.Println("[Profile] 16GB RAM mode: batch=800, threshold=0.7")
+	}
+
+	if batch > 0 {
+		BatchSize = batch
+		scanner.SetScannerLimits(maxFiles, batch)
+	}
+	if threshold > 0 {
+		ScanThreshold = threshold
+		embedding.SetThreshold(threshold)
+	}
+}
+
+func main() {
 	startPath := flag.String("startpath", "", "Initial path to scan on startup (e.g. -startpath=C:\\folder)")
 	port := flag.String("port", "8080", "Port to listen on (default: 8080)")
+	flag.Float64Var(&ScanThreshold, "threshold", DefaultThreshold, "Similarity threshold (0.0-1.0, lower=more links)")
+	flag.IntVar(&BatchSize, "batch", DefaultBatchSize, "Batch size for scanning (lower=less memory)")
+	flag.BoolVar(&LowRAM, "low_ram", false, "Low memory mode (~300 batch, 0.6 threshold)")
+	flag.BoolVar(&Ram8g, "ram8g", false, "8GB RAM profile (~500 batch, 0.65 threshold)")
+	flag.BoolVar(&Ram16g, "ram16g", false, "16GB RAM profile (~800 batch, 0.7 threshold)")
 	flag.Usage = func() {
 		fmt.Println("File Graph Visualizer - Server")
 		fmt.Println("")
@@ -25,23 +76,32 @@ func main() {
 		fmt.Println("Options:")
 		flag.PrintDefaults()
 		fmt.Println("")
+		fmt.Println("Memory Profiles:")
+		fmt.Println("  -low_ram     Low memory mode (for systems with <2GB free RAM)")
+		fmt.Println("  -ram8g       8GB RAM profile (recommended for your system)")
+		fmt.Println("  -ram16g      16GB RAM profile")
+		fmt.Println("")
 		fmt.Println("Examples:")
-		fmt.Println("  file_graph_server.exe                      Run with current folder")
 		fmt.Println("  file_graph_server.exe -startpath=C:\\docs   Scan specific folder")
-		fmt.Println("  file_graph_server.exe -port=9000           Use custom port")
+		fmt.Println("  file_graph_server.exe -startpath=C:\\docs -ram8g")
+		fmt.Println("  file_graph_server.exe -startpath=C:\\docs -low_ram")
+		fmt.Println("  file_graph_server.exe -port=9000 -startpath=C:\\myproject")
 	}
 	flag.Parse()
 
+	// Check if -h was passed or no arguments
+	if flag.NFlag() == 0 || flag.NArg() > 0 || len(os.Args) == 1 {
+		flag.Usage()
+		return
+	}
+
+	logger.Println("--- START ---")
+
+	// Apply memory profile settings
+	applyMemoryProfile()
+
 	wd, _ := os.Getwd()
 	logger.Printf("Working Dir: %s\n", wd)
-
-	// Show help if no startpath provided - but don't exit, just warn
-	if *startPath == "" {
-		fmt.Println("")
-		fmt.Println(">>> Tip: To scan a specific folder, use: -startpath=<folder>")
-		fmt.Println(">>> Example: -startpath=" + wd)
-		fmt.Println("")
-	}
 
 	if *startPath != "" {
 		absPath, err := filepath.Abs(*startPath)

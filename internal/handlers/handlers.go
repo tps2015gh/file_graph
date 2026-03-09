@@ -67,7 +67,12 @@ func HandleScan(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(result)
+
+	enc := json.NewEncoder(w)
+	enc.SetEscapeHTML(false)
+	if err := enc.Encode(result); err != nil {
+		logger.Printf("JSON Encode Error: %v\n", err)
+	}
 }
 
 func HandleOpen(w http.ResponseWriter, r *http.Request) {
@@ -106,9 +111,17 @@ func HandleHeartbeat(w http.ResponseWriter, r *http.Request) {
 func HandleProgress(w http.ResponseWriter, r *http.Request) {
 	scanner.CurrentFileMu.RLock()
 	defer scanner.CurrentFileMu.RUnlock()
+
+	maxFiles, batchSize, scanned := scanner.GetScannerStats()
+	threshold := embedding.GetThreshold()
+
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{
-		"path": scanner.CurrentFile,
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"path":      scanner.CurrentFile,
+		"max_files": maxFiles,
+		"batch":     batchSize,
+		"threshold": threshold,
+		"scanned":   scanned,
 	})
 }
 

@@ -14,14 +14,55 @@ import (
 )
 
 var (
-	CurrentFile   string
-	CurrentFileMu sync.RWMutex
+	CurrentFile      string
+	CurrentFileMu    sync.RWMutex
+	FilesScanned     int
+	FilesScannedMu   sync.RWMutex
+	MaxFilesInMemory = 5000
+	BatchSize        = 1000
 )
 
+func SetScannerLimits(maxFiles, batch int) {
+	if maxFiles > 0 {
+		MaxFilesInMemory = maxFiles
+	}
+	if batch > 0 {
+		BatchSize = batch
+	}
+}
+
+func GetScannerStats() (maxFiles, batch, scanned int) {
+	FilesScannedMu.RLock()
+	defer FilesScannedMu.RUnlock()
+	return MaxFilesInMemory, BatchSize, FilesScanned
+}
+
 func ScanDirectory(root string) ([]models.FileNode, error) {
+	// Fix common path issues
+	// 1. Convert forward slashes to backslashes
+	root = strings.ReplaceAll(root, "/", "\\")
+
+	// 2. Fix duplicated drive letter (e.g., C:C:\path -> C:\path)
+	if len(root) > 3 && root[1] == ':' && root[2] == ':' {
+		root = root[1:]
+	}
+
+	// 3. Clean and make absolute
 	root = filepath.Clean(root)
+	if !filepath.IsAbs(root) {
+		absRoot, err := filepath.Abs(root)
+		if err == nil {
+			root = absRoot
+		}
+	}
+
 	var nodes []models.FileNode
-	
+
+	// Reset counter
+	FilesScannedMu.Lock()
+	FilesScanned = 0
+	FilesScannedMu.Unlock()
+
 	// Check if root exists
 	if _, err := os.Stat(root); err != nil {
 		return nil, err
@@ -32,13 +73,14 @@ func ScanDirectory(root string) ([]models.FileNode, error) {
 			return nil // Skip errors
 		}
 
+		// Skip .git and other hidden folders
+		if strings.HasPrefix(d.Name(), ".") && d.IsDir() && path != root {
+			return filepath.SkipDir
+		}
+
 		CurrentFileMu.Lock()
 		CurrentFile = path
 		CurrentFileMu.Unlock()
-
-		if d.IsDir() && strings.HasPrefix(d.Name(), ".") && path != root {
-			return filepath.SkipDir
-		}
 
 		info, err := d.Info()
 		if err != nil {
@@ -72,6 +114,12 @@ func ScanDirectory(root string) ([]models.FileNode, error) {
 		node.Vector = embedding.BuildVector(node)
 
 		nodes = append(nodes, node)
+
+		// Increment counter
+		FilesScannedMu.Lock()
+		FilesScanned++
+		FilesScannedMu.Unlock()
+
 		return nil
 	})
 

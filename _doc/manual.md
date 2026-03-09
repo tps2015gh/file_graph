@@ -20,6 +20,22 @@
 - Open `http://localhost:8080`.
 - Use `stop.bat` to completely kill the server and the loop.
 
+### Command Line Options
+You can also run the executable directly:
+
+```bash
+file_graph_server.exe -startpath="C:\your\folder\here"
+```
+
+Examples:
+```bash
+# Scan specific folder (use double quotes)
+file_graph_server.exe -startpath="C:\your\folder\here"
+
+# Custom port
+file_graph_server.exe -port=9000
+```
+
 ---
 
 ## <a name="ภาษาไทย"></a>ภาษาไทย
@@ -40,3 +56,19 @@
 - รันไฟล์ `RUN.bat` เพื่อเริ่มต้นเซิร์ฟเวอร์
 - เปิดบราวเซอร์ไปที่ `http://localhost:8080`
 - ใช้ไฟล์ `stop.bat` เพื่อปิดเซิร์ฟเวอร์และหยุดการทำงานทั้งหมด
+
+### ตัวเลือก Command Line
+สามารถรัน executable โดยตรงได้:
+
+```bash
+file_graph_server.exe -startpath="C:\โฟลเดอร์ของคุณ"
+```
+
+ตัวอย่าง:
+```bash
+# สแกนโฟลเดอร์เฉพาะ (ใช้ double quotes)
+file_graph_server.exe -startpath="C:\xampp\htdocs\myapp"
+
+# กำหนด port เอง
+file_graph_server.exe -port=9000
+```
