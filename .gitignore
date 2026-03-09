@@ -1,0 +1,7 @@
+# Go binaries
+main.exe
+*.exe
+
+# Logs
+logs/*
+!logs/.gitkeep

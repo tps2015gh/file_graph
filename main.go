@@ -44,7 +44,22 @@ type ScanResult struct {
 	Links []Relation `json:"links"`
 }
 
+var appLogger *log.Logger
+
+func init() {
+	logFile, err := os.OpenFile("logs/app.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		fmt.Printf("Could not create log file: %v\n", err)
+		return
+	}
+	// Concise format: date time message
+	appLogger = log.New(logFile, "", log.Ldate|log.Ltime)
+}
+
 func main() {
+	if appLogger != nil {
+		appLogger.Println("--- START ---")
+	}
 	http.HandleFunc("/", serveIndex)
 	http.HandleFunc("/api/scan", handleScan)
 	http.HandleFunc("/api/open", handleOpen)
@@ -52,11 +67,17 @@ func main() {
 
 	port := "8080"
 	fmt.Printf("Starting server on http://localhost:%s\n", port)
+	if appLogger != nil {
+		appLogger.Printf("Server: http://localhost:%s\n", port)
+	}
 	log.Fatal(http.ListenAndServe(":"+port, nil))
 }
 
 func handleShutdown(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Shutdown requested...")
+	if appLogger != nil {
+		appLogger.Println("EVENT: SHUTDOWN")
+	}
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("Shutting down..."))
 	go func() {
@@ -70,6 +91,9 @@ func handleOpen(w http.ResponseWriter, r *http.Request) {
 	if path == "" {
 		http.Error(w, "Path is required", http.StatusBadRequest)
 		return
+	}
+	if appLogger != nil {
+		appLogger.Printf("OPEN: %s\n", path)
 	}
 
 	// For Windows: open the path in Explorer and select the file
@@ -95,11 +119,20 @@ func handleScan(w http.ResponseWriter, r *http.Request) {
 	if dir == "" {
 		dir = "."
 	}
+	if appLogger != nil {
+		appLogger.Printf("SCAN: %s\n", dir)
+	}
 
 	nodes, err := scanDirectory(dir)
 	if err != nil {
+		if appLogger != nil {
+			appLogger.Printf("ERROR: %v\n", err)
+		}
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
+	}
+	if appLogger != nil {
+		appLogger.Printf("RESULT: %d nodes\n", len(nodes))
 	}
 
 	links := calculateRelations(nodes)
