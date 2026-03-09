@@ -11,7 +11,17 @@ Instead of using a pre-trained neural network, we use a deterministic **Hand-Cra
 - **Prefix Signature (5D):** Normalized first 5 characters of the name.
 - **Content Hash (10D):** The first 10 bytes of the SHA-256 hash, ensuring content-level similarity is represented.
 
-### 2. Relationship Mapping (Cosine Similarity + Smart Bonuses)
+### 2. Future Extension Framework (42D Design)
+The architecture supports expansion to **42 dimensions** through modular feature addition. Unlike neural embeddings, our deterministic approach maintains interpretability while capturing deeper relationships:
+
+**Planned Extensions (Theoretical):**
+- **Path Fibonacci Hash (6D):** Samples characters at Fibonacci sequence positions (1, 2, 3, 5, 8, 13) from the full path, creating a "structural signature" resistant to minor path changes.
+- **Text Semantic Sampling (10D):** For text files, extracts characters at statistically significant positions (Fibonacci indices 1, 2, 3, 5, 8, 13, 21, 34, 55, 89) to capture keyword patterns without full content analysis.
+- **File Format Context (6D):** Extension-aware features that group similar file types (code, documents, media, configs).
+
+**Note:** These extensions demonstrate the framework's scalability while maintaining the lightweight, deterministic philosophy. The core 26D implementation remains production-ready, with 42D as a research direction for enhanced semantic understanding.
+
+### 3. Relationship Mapping (Cosine Similarity + Smart Bonuses)
 To find how "close" two stars (files) are, we calculate the **Cosine Similarity** between their vectors, then apply **Smart Bonuses** for common patterns:
 \[ \text{Similarity} = \frac{\mathbf{A} \cdot \mathbf{B}}{\|\mathbf{A}\| \|\mathbf{B}\|} + \text{Bonuses} \]
 
@@ -24,13 +34,13 @@ To find how "close" two stars (files) are, we calculate the **Cosine Similarity*
 | Same extension | +0.15 |
 | Name prefix/suffix match | +0.03-0.05 per char |
 
-### 3. Force-Directed Visualization
+### 4. Force-Directed Visualization
 We apply a **Physics-Based Simulation** (Force-Directed Graph) where:
 - Nodes with high similarity **attract** each other.
 - All nodes **repel** each other to avoid overlap.
 - **Damping (Shake & Brake)** is used to cool down the energy and reach a stable state quickly.
 
-### 4. Link Filtering (Prevent Dense Clusters)
+### 5. Link Filtering (Prevent Dense Clusters)
 To prevent "mesh sphere" effect with too many links:
 - **Links Slider (1-100%):** Filter to show only top X% strongest links
 - **Max Links Per Node (0-20):** Limit each node to max N links
@@ -49,7 +59,15 @@ To prevent "mesh sphere" effect with too many links:
 - **ลายเซ็นชื่อไฟล์ (5 มิติ):** ค่ามาตรฐานของตัวอักษร 5 ตัวแรกของชื่อไฟล์
 - **แฮชของเนื้อหา (10 มิติ):** 10 ไบต์แรกของ SHA-256 แฮช เพื่อให้ความคล้ายคลึงในระดับเนื้อหาถูกนำมาคำนวณด้วย
 
-### 2. การสร้างความสัมพันธ์ (ความคล้ายคลึงโคไซน์ + โบนัสอัจฉริยะ)
+### 2. กรอบการขยายในอนาคต (ออกแบบสำหรับ 42 มิต)
+สถาปัตยกรรมนี้รองรับการขยายไปถึง **42 มิติ** ผ่านการเพิ่มคุณลักษณะแบบโมดูลาร์ การใช้วิธีการกำหนดค่าแบบคงที่ของเรายังคงความสามารถในการอธิบายผลได้ (interpretability) ในขณะที่สามารถเก็บรวบรวมความสัมพันธ์ลึกๆ ได้:
+
+**การขยายที่วางแผนไว้ (เชิงทฤษฎี):**
+- **แฮชของเส้นทางแบบฟีโบนัชชี (6 มิติ):** ดึงตัวอักษรที่ตำแหน่งในลำดับฟีโบนัชชี (1, 2, 3, 5, 8, 13) จากเส้นทางเต็ม เพื่อสร้าง "ลายเซ็นโครงสร้าง" ที่ทนทานต่อการเปลี่ยนแปลงเล็กน้อยในเส้นทาง
+- **การสุ่มตัวอย่างทางความหมายของข้อความ (10 มิติ):** สำหรับไฟล์ข้อความ ดึงตัวอักษรที่ตำแหน่งที่มีนัยสำคัญทางสถิติ (ตัวชี้วัดฟีโบนัชชี 1, 2, 3, 5, 8, 13, 21, 34, 55, 89) เพื่อจับรูปแบบคำหลักโดยไม่ต้องวิเคราะห์เนื้อหาทั้งหมด
+- **บริบทรูปแบบไฟล์ (6 มิติ):** คุณลักษณะที่รับรู้รูปแบบไฟล์ในการจัดกลุ่มไฟล์ประเภทที่คล้ายกัน (โค้ด, เอกสาร, สื่อ, คอนฟิก)
+
+**หมายเหตุ:** การขยายเหล่านี้แสดงถึงความสามารถในการปรับขนาดของกรอบการทำงาน ในขณะที่ยังคงปรัชญาที่เบาและกำหนดค่าได้ การนำไปใช้หลัก 26 มิติยังคงพร้อมใช้งานสำหรับการผลิต โดย 42 มิติเป็นทิศทางการวิจัยเพื่อความเข้าใจทางความหมายที่เพิ่มขึ้น
 เพื่อหาว่า "ดวงดาว" (ไฟล์) สองดวงอยู่ใกล้กันแค่ไหน เราคำนวณ **ความคล้ายคลึงโคไซน์ (Cosine Similarity)** ระหว่างเวกเตอร์ แล้วใช้ **โบนัสอัจฉริยะ** สำหรับรูปแบบที่พบบ่อย:
 \[ \text{Similarity} = \frac{\mathbf{A} \cdot \mathbf{B}}{\|\mathbf{A}\| \|\mathbf{B}\|} + \text{Bonuses} \]
 

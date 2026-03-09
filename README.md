@@ -4,10 +4,11 @@ A standalone Go web application to scan directories, extract file metadata, calc
 
 ## Project Roles & Direction
 - **Lead Programmer & Director**: The User
-- **AI Team Assistance** (Last Updated: 2026-03-09):
+- **AI Team Assistance** (Last Updated: 2026-03-10):
   - Gemini CLI (Powered by multiple models)
   - OpenCode (Advanced AI coding assistant)
   - Minimax-M2.5-Free (Fast code generation model via OpenCode)
+  - DeepSeek-V3.2-Exp (Large language model for complex reasoning)
 
 ## Core Concept
 This program treats the filesystem as a high-dimensional universe where files are stars. Related files cluster together into "Star Colonies" based on their metadata and content signatures.
@@ -18,14 +19,8 @@ This program treats the filesystem as a high-dimensional universe where files ar
 
 ## Features
 - **26D Embedding Vector**: Extracts size, name, time, and content hash (SHA-256).
-- **Smart Link Detection**: Folder proximity, filename prefix/suffix, reduced number proximity (prevents over-clustering).
-- **Physics Simulation**: "Shake & Brake" stabilizer for peaceful node placement.
-- **Interactive UX**: Zoom, Pan, Drag & Bounce, and real-time Scan Progress.
-- **Link Filter**: Slider to show only top 1-100% strongest links (prevents mesh sphere effect).
-- **Zoom Controls**: Zoom+/Zoom- buttons (2x per click), Reset to 100%.
-- **Shake Button**: Add random energy to break stable clusters.
-- **Node Details**: Full path display with Copy Path button, Open in Explorer.
-- **Server Management**: Restart/Kill server and batch loop directly from the UI.
+- **Advanced Extensions (Future Proofing)**: The framework supports up to 42D with path Fibonacci hash and text analysis.
+- **Smart Link Detection**: Folder proximity, filename prefix/suffix, reduced number proximity.
 - **Memory Optimized**: Configurable batch size for low-RAM systems (-low_ram, -ram8g, -ram16g).
 
 ## Screenshots
