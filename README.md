@@ -31,8 +31,13 @@ This program treats the filesystem as a high-dimensional universe where files ar
 
 ## Getting Started
 1. Clone the repository.
-2. Run `RUN.bat`.
+2. Run `RUN.bat` (automatically uses `-ram8g` for 8GB RAM systems).
 3. Open `http://localhost:8080` in your browser.
+
+**Manual startup (custom folder):**
+```bash
+file_graph_server.exe -startpath="C:\myproject" -ram8g
+```
 
 ## Command Line Options
 

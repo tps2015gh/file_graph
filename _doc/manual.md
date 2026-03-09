@@ -16,7 +16,7 @@
 6.  **Server Health**: Bottom-right indicator shows if the Go backend is alive and the current server time.
 
 ### How to Run
-- Run `RUN.bat` to start the server.
+- Run `RUN.bat` to start the server (automatically uses `-ram8g` for optimal performance).
 - Open `http://localhost:8080`.
 - Use `stop.bat` to completely kill the server and the loop.
 
@@ -24,16 +24,19 @@
 You can also run the executable directly:
 
 ```bash
-file_graph_server.exe -startpath="C:\your\folder\here"
+file_graph_server.exe -startpath="C:\your\folder\here" -ram8g
 ```
 
 Examples:
 ```bash
-# Scan specific folder (use double quotes)
-file_graph_server.exe -startpath="C:\your\folder\here"
+# Scan specific folder with 8GB RAM profile
+file_graph_server.exe -startpath="C:\your\folder\here" -ram8g
 
-# Custom port
-file_graph_server.exe -port=9000
+# Custom port with RAM optimization
+file_graph_server.exe -port=9000 -ram8g
+
+# Low RAM mode for systems with <2GB free
+file_graph_server.exe -startpath="C:\your\folder\here" -low_ram
 ```
 
 ---
