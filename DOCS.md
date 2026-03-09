@@ -36,3 +36,20 @@ The user's requested attributes are mapped as follows:
 - `create date time`: Currently uses `ModTime` as a fallback.
 - `modify date time`: `info.ModTime()`
 - `hash value`: `sha256(file_content)`
+
+### Embedding Vector (26 Dimensions)
+
+To calculate similarity, we build a 26-dimensional vector for each file:
+1.  **Size (Log10)**: Normalized logarithmic size.
+2.  **Size (Mod 1000)**: Normalized last 3 digits.
+3.  **Folder Depth**: Depth in directory tree.
+4.  **Name Length**: Normalized length (capped at 100).
+5.  **Extension Hash**: Simple sum hash of the extension.
+6.  **Dot Count**: Number of `.` in name.
+7.  **Underscore Count**: Number of `_` in name.
+8.  **Digit Count**: Number of digits in name.
+9.  **Hour**: Modification hour (0-23).
+10. **Weekday**: Modification day (0-6).
+11. **Month**: Modification month (0-11).
+12-16. **Name Chars**: First 5 characters of the name.
+17-26. **Hash Segments**: First 10 bytes of the SHA256 hash.

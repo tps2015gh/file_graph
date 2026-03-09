@@ -231,24 +231,86 @@ func calculateHash(path string) string {
 }
 
 func buildVector(n FileNode) []float64 {
-	// Simple normalization/encoding for similarity
-	// 1: Size (log scale)
-	// 2: SizeLast3 (normalized 0-1)
-	// 3: NameHash (first byte of name)
-	// 4: ModTime (unix timestamp normalized)
-	
-	v := make([]float64, 4)
+	// 25-Dimensional Vector Construction
+	// 0: Size (log scale)
+	// 1: SizeLast3 (normalized 0-1)
+	// 2: Folder Depth
+	// 3: Name Length (normalized)
+	// 4: Extension Hash
+	// 5: Count '.'
+	// 6: Count '_'
+	// 7: Count Digits
+	// 8: ModTime: Hour (0-1)
+	// 9: ModTime: Weekday (0-1)
+	// 10: ModTime: Month (0-1)
+	// 11-15: First 5 chars of name (normalized ascii)
+	// 16-25: First 10 bytes of SHA256 Hash (normalized)
+
+	v := make([]float64, 26) // 26 dimensions total
+
+	// 0. Size Log10
 	if n.Size > 0 {
 		v[0] = math.Log10(float64(n.Size))
 	}
+
+	// 1. Size Mod 1000
 	v[1] = float64(n.SizeLast3) / 1000.0
-	
-	if len(n.Name) > 0 {
-		v[2] = float64(n.Name[0]) / 255.0
+
+	// 2. Folder Depth (Approximate by separator count)
+	// Assuming Windows separator '\'
+	v[2] = float64(strings.Count(n.Path, string(os.PathSeparator))) / 10.0
+
+	// 3. Name Length (cap at 100)
+	v[3] = math.Min(float64(len(n.Name)), 100.0) / 100.0
+
+	// 4. Extension Hash
+	ext := filepath.Ext(n.Name)
+	if len(ext) > 0 {
+		// Simple sum hash of extension chars
+		sum := 0
+		for _, c := range ext {
+			sum += int(c)
+		}
+		v[4] = float64(sum%255) / 255.0
 	}
-	
-	v[3] = float64(n.ModifiedAt.Unix() % 86400) / 86400.0 // Daily cycle similarity
-	
+
+	// 5, 6, 7. Char Stats
+	v[5] = float64(strings.Count(n.Name, ".")) / 5.0
+	v[6] = float64(strings.Count(n.Name, "_")) / 5.0
+	digitCount := 0
+	for _, c := range n.Name {
+		if c >= '0' && c <= '9' {
+			digitCount++
+		}
+	}
+	v[7] = float64(digitCount) / 10.0
+
+	// 8, 9, 10. Time Attributes
+	v[8] = float64(n.ModifiedAt.Hour()) / 24.0
+	v[9] = float64(n.ModifiedAt.Weekday()) / 7.0
+	v[10] = float64(n.ModifiedAt.Month()) / 12.0
+
+	// 11-15. First 5 chars of name
+	nameRunes := []rune(n.Name)
+	for i := 0; i < 5; i++ {
+		if i < len(nameRunes) {
+			v[11+i] = float64(nameRunes[i]) / 255.0
+		}
+	}
+
+	// 16-25. Hash Segments (10 dimensions)
+	// Hash is a hex string. We need bytes.
+	if n.Hash != "" {
+		hashBytes, err := hex.DecodeString(n.Hash)
+		if err == nil {
+			for i := 0; i < 10; i++ {
+				if i < len(hashBytes) {
+					v[16+i] = float64(hashBytes[i]) / 255.0
+				}
+			}
+		}
+	}
+
 	return v
 }
 
