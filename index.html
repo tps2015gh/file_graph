@@ -119,6 +119,12 @@
         <div class="search-container">
             <input type="text" id="search-input" placeholder="Search files (Enter to find related)...">
         </div>
+        <div style="display: flex; align-items: center; gap: 10px; margin-right: 20px;">
+            <label style="font-size: 0.8rem;">Spacing</label>
+            <input type="range" id="spacing-slider" min="100" max="2000" value="500">
+            <label style="font-size: 0.8rem;">Rotate</label>
+            <input type="range" id="rotate-slider" min="0" max="50" value="0">
+        </div>
         <button id="scan-btn">Scan Files</button>
         <button id="restart-btn" style="background:#f38ba8; margin-left:10px;">Restart</button>
     </header>
@@ -154,6 +160,8 @@
         const searchInput = document.getElementById('search-input');
         const scanBtn = document.getElementById('scan-btn');
         const restartBtn = document.getElementById('restart-btn');
+        const spacingSlider = document.getElementById('spacing-slider');
+        const rotateSlider = document.getElementById('rotate-slider');
         const detailsPanel = document.getElementById('details-panel');
         const nodeInfo = document.getElementById('node-info');
         const relatedBody = document.getElementById('related-body');
@@ -163,6 +171,7 @@
         let links = [];
         let width, height;
         let selectedNode = null;
+        let kineticEnergy = 0;
 
         function resize() {
             width = canvas.parentElement.clientWidth;
@@ -178,6 +187,10 @@
         function simulate() {
             if (nodes.length === 0) return;
 
+            let totalMove = 0;
+            const spacing = parseFloat(spacingSlider.value);
+            const rotationSpeed = parseFloat(rotateSlider.value) / 10000;
+
             // Repulsion between all nodes
             for (let i = 0; i < nodes.length; i++) {
                 const n1 = nodes[i];
@@ -188,7 +201,7 @@
                     const distSq = dx * dx + dy * dy || 1;
                     const dist = Math.sqrt(distSq);
                     
-                    const force = 500 / distSq;
+                    const force = spacing / distSq;
                     const fx = (dx / dist) * force;
                     const fy = (dy / dist) * force;
 
@@ -197,6 +210,18 @@
                     n2.vx += fx;
                     n2.vy += fy;
                 }
+            }
+            
+            // Rotation Force (Apply a slight tangent force to each node relative to center)
+            if (rotationSpeed > 0) {
+                nodes.forEach(n => {
+                    const dx = n.x - width/2;
+                    const dy = n.y - height/2;
+                    const dist = Math.sqrt(dx*dx + dy*dy) || 1;
+                    // Tangent vector is (-dy, dx)
+                    n.vx += (-dy / dist) * rotationSpeed * dist;
+                    n.vy += (dx / dist) * rotationSpeed * dist;
+                });
             }
 
             // Attraction between linked nodes
@@ -221,6 +246,7 @@
             });
 
             // Center attraction (Gravity toward center)
+            let totalMove = 0;
             nodes.forEach(n => {
                 const dx = width / 2 - n.x;
                 const dy = height / 2 - n.y;
@@ -235,10 +261,19 @@
                 n.x += n.vx;
                 n.y += n.vy;
                 
+                totalMove += Math.abs(n.vx) + Math.abs(n.vy);
+
                 // Keep in bounds
                 n.x = Math.max(10, Math.min(width - 10, n.x));
                 n.y = Math.max(10, Math.min(height - 10, n.y));
             });
+
+            kineticEnergy = totalMove;
+            if (kineticEnergy > 10) {
+                status.textContent = `Stabilizing... (Energy: ${Math.round(kineticEnergy)})`;
+            } else {
+                status.textContent = 'Stable';
+            }
         }
 
         function draw() {
@@ -271,6 +306,21 @@
 
             // Draw nodes
             nodes.forEach(n => {
+                // If a node is selected, fade out unrelated nodes
+                let opacity = 1.0;
+                let isRelated = false;
+                if (selectedNode) {
+                    if (n.id === selectedNode.id) {
+                        isRelated = true;
+                    } else {
+                        isRelated = links.some(l => 
+                            (l.source === selectedNode.id && l.target === n.id) ||
+                            (l.target === selectedNode.id && l.source === n.id)
+                        );
+                    }
+                    if (!isRelated) opacity = 0.15;
+                }
+
                 ctx.beginPath();
                 const radius = n.is_folder ? 6 : 4;
                 ctx.arc(n.x, n.y, radius, 0, Math.PI * 2);
@@ -280,12 +330,12 @@
                     ctx.shadowBlur = 15;
                     ctx.shadowColor = '#f5c2e7';
                 } else if (n.is_folder) {
-                    ctx.fillStyle = '#f9e2af';
-                    ctx.shadowBlur = 5;
+                    ctx.fillStyle = `rgba(249, 226, 175, ${opacity})`;
+                    ctx.shadowBlur = 5 * opacity;
                     ctx.shadowColor = '#f9e2af';
                 } else {
-                    ctx.fillStyle = '#89b4fa';
-                    ctx.shadowBlur = 2;
+                    ctx.fillStyle = `rgba(137, 180, 250, ${opacity})`;
+                    ctx.shadowBlur = 2 * opacity;
                     ctx.shadowColor = '#89b4fa';
                 }
                 
@@ -293,8 +343,8 @@
                 ctx.shadowBlur = 0;
 
                 // Label for large or selected nodes
-                if (n === selectedNode || nodes.length < 50) {
-                    ctx.fillStyle = '#cdd6f4';
+                if (n === selectedNode || (isRelated && nodes.length < 100)) {
+                    ctx.fillStyle = `rgba(205, 214, 244, ${opacity})`;
                     ctx.font = '10px sans-serif';
                     ctx.fillText(n.name, n.x + 8, n.y + 4);
                 }
