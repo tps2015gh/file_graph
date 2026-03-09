@@ -7,7 +7,7 @@ A standalone Go web application to scan directories, extract file metadata, calc
 - **AI Team Assistance** (Last Updated: 2026-03-09):
   - Gemini CLI (Powered by multiple models)
   - OpenCode (Advanced AI coding assistant)
-  - Big Pickle (Specialized AI model)
+  - Minimax-M2.5-Free (Fast code generation model via OpenCode)
 
 ## Core Concept
 This program treats the filesystem as a high-dimensional universe where files are stars. Related files cluster together into "Star Colonies" based on their metadata and content signatures.
@@ -18,11 +18,15 @@ This program treats the filesystem as a high-dimensional universe where files ar
 
 ## Features
 - **26D Embedding Vector**: Extracts size, name, time, and content hash (SHA-256).
-- **Smart Link Detection**: Folder proximity, filename prefix/suffix, number proximity (file1 ↔ file2).
+- **Smart Link Detection**: Folder proximity, filename prefix/suffix, reduced number proximity (prevents over-clustering).
 - **Physics Simulation**: "Shake & Brake" stabilizer for peaceful node placement.
 - **Interactive UX**: Zoom, Pan, Drag & Bounce, and real-time Scan Progress.
+- **Link Filter**: Slider to show only top 1-100% strongest links (prevents mesh sphere effect).
+- **Zoom Controls**: Zoom+/Zoom- buttons (2x per click), Reset to 100%.
+- **Shake Button**: Add random energy to break stable clusters.
+- **Node Details**: Full path display with Copy Path button, Open in Explorer.
 - **Server Management**: Restart/Kill server and batch loop directly from the UI.
-- **Memory Optimized**: Configurable batch size for low-RAM systems.
+- **Memory Optimized**: Configurable batch size for low-RAM systems (-low_ram, -ram8g, -ram16g).
 
 ## Getting Started
 1. Clone the repository.
@@ -49,25 +53,36 @@ file_graph_server.exe [options]
 | Condition | Bonus |
 |-----------|-------|
 | Same folder | +0.40 |
-| Same number (file1.txt = file1.txt) | +0.30 |
-| Adjacent numbers (file1.txt ↔ file2.txt) | +0.20 |
+| Same number (file1.txt = file1.txt) | +0.15 |
+| Adjacent numbers (file1.txt ↔ file2.txt) | +0.08 |
+| Close numbers (diff ≤3) | +0.03 |
 | Same extension (.go, .txt) | +0.15 |
 | Same name suffix (3+ chars) | +0.03 per char |
 | Same name prefix (3+ chars) | +0.05 per char |
 | Same last 4 chars | +0.10 |
 | Same size last 3 digits | +0.05 |
 
+### UI Controls
+
+- **Spacing slider**: Adjust repulsion force between nodes
+- **Rotate slider**: Add rotation to spread nodes radially
+- **Links slider (1-100%)**: Filter to show only top X% strongest links
+- **Zoom+ / Zoom-**: Zoom in/out (2x per click, max 50x)
+- **1:1**: Reset zoom to 100%
+- **Shake**: Add random energy to break stable clusters
+- **Reset**: Reset links filter to 100%
+
 ### Examples
 
 ```bash
-# Scan current folder (default)
+# Show help
 file_graph_server.exe
 
 # Scan specific folder (use double quotes)
 file_graph_server.exe -startpath="C:\My Projects"
 
 # Custom port
-file_graph for paths with spaces_server.exe -port=9000
+file_graph_server.exe -port=9000
 
 # 8GB RAM mode (RECOMMENDED for your system)
 file_graph_server.exe -startpath=C:\myproject -ram8g
