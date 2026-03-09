@@ -115,9 +115,13 @@
 </head>
 <body>
     <header>
-        <div style="font-weight: bold; font-size: 1.2rem;">File Graph</div>
+        <div style="font-weight: bold; font-size: 1.2rem; min-width: 100px;">File Graph</div>
+        <div style="display: flex; align-items: center; gap: 5px; margin-left: 10px;">
+            <label style="font-size: 0.8rem; white-space: nowrap;">Path:</label>
+            <input type="text" id="dir-input" placeholder="e.g. C:\Users" style="width: 150px; padding: 4px; background: #181825; border: 1px solid #313244; color: #cdd6f4;">
+        </div>
         <div class="search-container">
-            <input type="text" id="search-input" placeholder="Search files (Enter to find related)...">
+            <input type="text" id="search-input" placeholder="Search filename... (e.g. 'main' or '.go')">
         </div>
         <div style="display: flex; align-items: center; gap: 10px; margin-right: 20px;">
             <label style="font-size: 0.8rem;">Spacing</label>
@@ -159,6 +163,7 @@
         const ctx = canvas.getContext('2d');
         const searchInput = document.getElementById('search-input');
         const scanBtn = document.getElementById('scan-btn');
+        const dirInput = document.getElementById('dir-input');
         const restartBtn = document.getElementById('restart-btn');
         const spacingSlider = document.getElementById('spacing-slider');
         const rotateSlider = document.getElementById('rotate-slider');
@@ -377,27 +382,48 @@
 
         async function scan() {
             status.textContent = 'Scanning...';
+            const path = dirInput.value || '.';
             try {
-                const resp = await fetch('/api/scan');
+                const resp = await fetch(`/api/scan?dir=${encodeURIComponent(path)}`);
                 const data = await resp.json();
                 
-                // Initialize positions
+                // Reset transform to default view
+                transform = { x: 0, y: 0, k: 1 };
+                
+                // Initialize positions in a cluster near center
                 nodes = data.nodes.map(n => ({
                     ...n,
-                    x: Math.random() * width,
-                    y: Math.random() * height,
+                    x: width / 2 + (Math.random() - 0.5) * 100,
+                    y: height / 2 + (Math.random() - 0.5) * 100,
                     vx: 0,
                     vy: 0
                 }));
                 links = data.links;
                 
-                status.textContent = `Found ${nodes.length} nodes and ${links.length} relations.`;
+                if (nodes.length === 0) {
+                    status.textContent = 'No files found in that directory.';
+                } else {
+                    status.textContent = `Found ${nodes.length} nodes and ${links.length} relations.`;
+                }
             } catch (err) {
                 status.textContent = 'Error: ' + err.message;
+                console.error(err);
             }
         }
 
         scanBtn.addEventListener('click', scan);
+
+        searchInput.addEventListener('input', (e) => {
+            const term = searchInput.value.toLowerCase();
+            if (term.length < 2) return;
+            const found = nodes.find(n => n.name.toLowerCase().includes(term));
+            if (found) {
+                selectNode(found);
+                // PAN TO THE SEARCHED NODE - smooth pan
+                transform.x = (width / 2 - found.x) * transform.k;
+                transform.y = (height / 2 - found.y) * transform.k;
+            }
+        });
 
         restartBtn.addEventListener('click', async () => {
             if (confirm('Restart server? This will close and reopen the app.')) {
@@ -527,18 +553,6 @@
             return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
         }
 
-        searchInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                const term = searchInput.value.toLowerCase();
-                const found = nodes.find(n => n.name.toLowerCase().includes(term));
-                if (found) {
-                    selectNode(found);
-                    // Move view to node (optional)
-                    found.x = width / 2;
-                    found.y = height / 2;
-                }
-            }
-        });
 
         requestAnimationFrame(draw);
         // Initial scan
