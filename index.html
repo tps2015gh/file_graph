@@ -171,7 +171,11 @@
         let links = [];
         let width, height;
         let selectedNode = null;
+        let draggedNode = null;
         let kineticEnergy = 0;
+        let transform = { x: 0, y: 0, k: 1 };
+        let isPanning = false;
+        let lastMouse = { x: 0, y: 0 };
 
         function resize() {
             width = canvas.parentElement.clientWidth;
@@ -245,9 +249,11 @@
                 t.vy -= fy;
             });
 
-            // Center attraction (Gravity toward center)
+                // Center attraction (Gravity toward center)
             let totalMove = 0;
             nodes.forEach(n => {
+                if (n === draggedNode) return; // Don't apply physics while dragging
+
                 const dx = width / 2 - n.x;
                 const dy = height / 2 - n.y;
                 // SLOWER CENTER GRAVITY: from 0.005 to 0.002
@@ -279,6 +285,11 @@
         function draw() {
             ctx.clearRect(0, 0, width, height);
 
+            ctx.save();
+            ctx.translate(width/2 + transform.x, height/2 + transform.y);
+            ctx.scale(transform.k, transform.k);
+            ctx.translate(-width/2, -height/2);
+
             // Draw links
             links.forEach(link => {
                 const s = nodes.find(n => n.id === link.source);
@@ -291,12 +302,12 @@
                     
                     if (isSelected) {
                         ctx.strokeStyle = 'rgba(245, 194, 231, 0.8)';
-                        ctx.lineWidth = 2;
+                        ctx.lineWidth = 2 / transform.k;
                         ctx.shadowBlur = 5;
                         ctx.shadowColor = '#f5c2e7';
                     } else {
                         ctx.strokeStyle = 'rgba(137, 180, 250, 0.2)';
-                        ctx.lineWidth = 1;
+                        ctx.lineWidth = 1 / transform.k;
                         ctx.shadowBlur = 0;
                     }
                     ctx.stroke();
@@ -322,7 +333,7 @@
                 }
 
                 ctx.beginPath();
-                const radius = n.is_folder ? 6 : 4;
+                const radius = (n.is_folder ? 6 : 4) / transform.k;
                 ctx.arc(n.x, n.y, radius, 0, Math.PI * 2);
                 
                 if (n === selectedNode) {
@@ -345,10 +356,12 @@
                 // Label for large or selected nodes
                 if (n === selectedNode || (isRelated && nodes.length < 100)) {
                     ctx.fillStyle = `rgba(205, 214, 244, ${opacity})`;
-                    ctx.font = '10px sans-serif';
-                    ctx.fillText(n.name, n.x + 8, n.y + 4);
+                    ctx.font = `${10 / transform.k}px sans-serif`;
+                    ctx.fillText(n.name, n.x + 8 / transform.k, n.y + 4 / transform.k);
                 }
             });
+
+            ctx.restore();
 
             simulate();
             requestAnimationFrame(draw);
@@ -403,27 +416,64 @@
             }
         });
 
-        canvas.addEventListener('click', (e) => {
+        canvas.addEventListener('mousedown', (e) => {
             const rect = canvas.getBoundingClientRect();
-            const mouseX = e.clientX - rect.left;
-            const mouseY = e.clientY - rect.top;
+            // Convert screen coordinates to world coordinates
+            const mx = (e.clientX - rect.left - width/2 - transform.x) / transform.k + width/2;
+            const my = (e.clientY - rect.top - height/2 - transform.y) / transform.k + height/2;
 
             let found = null;
             nodes.forEach(n => {
-                const dx = n.x - mouseX;
-                const dy = n.y - mouseY;
-                if (Math.sqrt(dx * dx + dy * dy) < 10) {
+                const dx = n.x - mx;
+                const dy = n.y - my;
+                if (Math.sqrt(dx * dx + dy * dy) < 15 / transform.k) {
                     found = n;
                 }
             });
 
             if (found) {
+                draggedNode = found;
                 selectNode(found);
             } else {
+                isPanning = true;
+                lastMouse = { x: e.clientX, y: e.clientY };
                 selectedNode = null;
                 detailsPanel.style.display = 'none';
             }
         });
+
+        window.addEventListener('mousemove', (e) => {
+            if (draggedNode) {
+                const rect = canvas.getBoundingClientRect();
+                const mx = (e.clientX - rect.left - width/2 - transform.x) / transform.k + width/2;
+                const my = (e.clientY - rect.top - height/2 - transform.y) / transform.k + height/2;
+                
+                // For "bounce" effect on release, track velocity during drag
+                draggedNode.vx = (mx - draggedNode.x);
+                draggedNode.vy = (my - draggedNode.y);
+                
+                draggedNode.x = mx;
+                draggedNode.y = my;
+            } else if (isPanning) {
+                transform.x += (e.clientX - lastMouse.x);
+                transform.y += (e.clientY - lastMouse.y);
+                lastMouse = { x: e.clientX, y: e.clientY };
+            }
+        });
+
+        window.addEventListener('mouseup', () => {
+            draggedNode = null;
+            isPanning = false;
+        });
+
+        canvas.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const zoomSpeed = 0.001;
+            const delta = -e.deltaY;
+            const factor = Math.pow(1.1, delta / 100);
+            transform.k *= factor;
+            transform.k = Math.max(0.1, Math.min(10, transform.k));
+        }, { passive: false });
 
         function selectNode(n) {
             selectedNode = n;
