@@ -4,7 +4,10 @@
 
 A standalone Go web application to scan directories, extract file metadata, calculate similarity embeddings (26D Vector Space), and visualize relationships as an interactive 2D interactive graph.
 
-**The Tale Behind the Code**: Read the magical journey of creation in [taleTheTravelOfMagicAndMath.md](taleTheTravelOfMagicAndMath.md)
+**The Tales Behind the Code**: 
+- **Cosmic Journey**: Read the magical creation story in [taleTheTravelOfMagicAndMath.md](taleTheTravelOfMagicAndMath.md)
+- **Future Predictions**: Explore AI-human destiny predictions in [taleStoryPredictWhatWillComeInVectorSpace.md](taleStoryPredictWhatWillComeInVectorSpace.md)
+- **ภาษาไทย**: อ่านนิทานทำนายอนาคตในภาษาไทย [taleStoryPredictWhatWillComeInVectorSpace_TH.md](taleStoryPredictWhatWillComeInVectorSpace_TH.md)
 
 ## Build & Compilation Requirements
 
