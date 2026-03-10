@@ -79,7 +79,7 @@ This program treats the filesystem as a high-dimensional universe where files ar
 
 ## Screenshots
 
-![Red Energy Search Attractor](_doc/Screenshot 2026-03-10 220442.png)
+![Red Energy Search Attractor](_doc/Screenshot-2026-03-10-220442.png)
 
 *The new **Red Energy** attractor pulling search results into a separate "Star Colony" for better visibility.*
 
@@ -87,14 +87,14 @@ This program treats the filesystem as a high-dimensional universe where files ar
 
 ![File Graph with Controls](_doc/Screenshot-2026-03-10-004132.png)
 
-![Red Energy Interaction](_doc/Screenshot 2026-03-10 220442.png)
+![Red Energy Interaction](_doc/Screenshot-2026-03-10-220442.png)
 
 ## New Features (Update 2026-03-10)
 
 ### 🔴 Red Energy Search Attractor (Vortex)
 When you search for files, a high-density **Red Energy Vortex** is created:
 
-![UI and Controls](_doc/Screenshot 2026-03-10-220442.png)
+![UI and Controls](_doc/Screenshot-2026-03-10-220442.png)
 
 - **Automatic Offset**: Initially spawns 300px to the right of the results center, separating search matches from the main "old colony."
 - **Draggable Gravity**: You can manually click and drag the **RED ENERGY** vortex anywhere on the canvas to pull the search results with it.
