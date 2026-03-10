@@ -26,10 +26,12 @@
             border-bottom: 1px solid #313244;
         }
 
-        .search-container {
-            flex-grow: 1;
-            margin: 0 2rem;
-        }
+         .search-container {
+             flex-grow: 3;
+             margin: 0 2rem;
+             display: flex;
+             align-items: center;
+         }
 
         input[type="text"] {
             width: 100%;
@@ -115,33 +117,34 @@
 </head>
 <body>
     <header>
-        <div style="font-weight: bold; font-size: 1.2rem; min-width: 100px;">File Graph</div>
-        <div style="display: flex; align-items: center; gap: 5px; margin-left: 10px; flex-grow: 1;">
-            <label style="font-size: 0.8rem; white-space: nowrap;">Path:</label>
-            <input type="text" id="dir-input" placeholder="e.g. C:\Users" style="flex-grow: 1; min-width: 200px; padding: 4px; background: #181825; border: 1px solid #313244; color: #cdd6f4;">
-            <button id="browse-btn" style="background:#313244; color:#cdd6f4; border:1px solid #45475a; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:0.8rem;">Browse...</button>
-        </div>
-        <div class="search-container" style="flex-grow: 2;">
-            <input type="text" id="search-input" placeholder="Search filename... (e.g. 'main' or '.go')" style="width: 100%;">
-        </div>
-        <div style="display: flex; align-items: center; gap: 10px; margin-right: 20px;">
-            <label style="font-size: 0.8rem;">Links:</label>
-            <input type="range" id="links-slider" min="1" max="100" value="100">
-            <span id="links-value" style="font-size:0.75rem; min-width:35px;">100%</span>
-            <label style="font-size: 0.8rem;">Max:</label>
-            <input type="range" id="maxlinks-slider" min="0" max="20" value="5">
-            <span id="maxlinks-value" style="font-size:0.75rem; min-width:25px;">5</span>
-            <button id="links-reset-btn" style="background:#313244; color:#cdd6f4; border:1px solid #45475a; padding:2px 6px; border-radius:4px; cursor:pointer; font-size:0.7rem;">Reset</button>
-            <label style="font-size: 0.8rem;">Spacing</label>
-            <input type="range" id="spacing-slider" min="100" max="2000" value="500">
-            <label style="font-size: 0.8rem;">Rotate</label>
-            <input type="range" id="rotate-slider" min="0" max="50" value="0">
-            <button id="zoom-in-btn" style="background:#313244; color:#cdd6f4; border:1px solid #45475a; padding:2px 8px; border-radius:4px; cursor:pointer; font-size:0.8rem;">Zoom+</button>
-            <button id="zoom-out-btn" style="background:#313244; color:#cdd6f4; border:1px solid #45475a; padding:2px 8px; border-radius:4px; cursor:pointer; font-size:0.8rem;">Zoom-</button>
-            <button id="zoom-reset-btn" style="background:#313244; color:#cdd6f4; border:1px solid #45475a; padding:2px 6px; border-radius:4px; cursor:pointer; font-size:0.7rem;">1:1</button>
-            <button id="shake-btn" style="background:#f38ba8; color:#11111b; border:1px solid #f38ba8; padding:2px 8px; border-radius:4px; cursor:pointer; font-size:0.8rem;">Shake</button>
-            <button id="spread-btn" style="background:#89b4fa; color:#11111b; border:1px solid #89b4fa; padding:2px 8px; border-radius:4px; cursor:pointer; font-size:0.8rem;">Spread</button>
-        </div>
+         <div style="font-weight: bold; font-size: 1.2rem; min-width: 80px;">File Graph</div>
+         <div style="display: flex; align-items: center; gap: 5px; margin-left: 10px; flex-grow: 1;">
+             <label style="font-size: 0.8rem; white-space: nowrap;">Path:</label>
+             <input type="text" id="dir-input" placeholder="e.g. C:\\Users" style="flex-grow: 1; min-width: 150px; padding: 4px; background: #181825; border: 1px solid #313244; color: #cdd6f4;">
+             <button id="browse-btn" style="background:#313244; color:#cdd6f4; border:1px solid #45475a; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:0.8rem;">Browse...</button>
+         </div>
+          <div class="search-container" style="flex-grow: 5;">
+              <input type="text" id="search-input" placeholder="Search filename... (e.g. 'main' or '.go')" style="width: 100%;">
+              <span id="search-status" style="margin-left: 10px; font-size: 0.75rem; min-width: 60px;"></span>
+          </div>
+         <div style="display: flex; align-items: center; gap: 6px; margin-right: 10px; flex-shrink: 1;">
+             <label style="font-size: 0.7rem;">Links:</label>
+             <input type="range" id="links-slider" min="1" max="100" value="100" style="width: 50px;">
+             <span id="links-value" style="font-size:0.65rem; min-width:25px;">100%</span>
+             <label style="font-size: 0.7rem;">Max:</label>
+             <input type="range" id="maxlinks-slider" min="0" max="20" value="5" style="width: 40px;">
+             <span id="maxlinks-value" style="font-size:0.65rem; min-width:15px;">5</span>
+             <button id="links-reset-btn" style="background:#313244; color:#cdd6f4; border:1px solid #45475a; padding:2px 4px; border-radius:3px; cursor:pointer; font-size:0.6rem;">Reset</button>
+             <label style="font-size: 0.7rem;">Spacing</label>
+             <input type="range" id="spacing-slider" min="100" max="2000" value="500" style="width: 40px;">
+             <label style="font-size: 0.7rem;">Rotate</label>
+             <input type="range" id="rotate-slider" min="0" max="50" value="0" style="width: 40px;">
+             <button id="zoom-in-btn" style="background:#313244; color:#cdd6f4; border:1px solid #45475a; padding:2px 6px; border-radius:3px; cursor:pointer; font-size:0.7rem;">Zoom+</button>
+             <button id="zoom-out-btn" style="background:#313244; color:#cdd6f4; border:1px solid #45475a; padding:2px 6px; border-radius:3px; cursor:pointer; font-size:0.7rem;">Zoom-</button>
+             <button id="zoom-reset-btn" style="background:#313244; color:#cdd6f4; border:1px solid #45475a; padding:2px 4px; border-radius:3px; cursor:pointer; font-size:0.6rem;">1:1</button>
+             <button id="shake-btn" style="background:#f38ba8; color:#11111b; border:1px solid #f38ba8; padding:2px 6px; border-radius:3px; cursor:pointer; font-size:0.7rem;">Shake</button>
+             <button id="spread-btn" style="background:#89b4fa; color:#11111b; border:1px solid #89b4fa; padding:2px 6px; border-radius:3px; cursor:pointer; font-size:0.7rem;">Spread</button>
+         </div>
         <button id="scan-btn">Scan Files</button>
         <button id="restart-btn" style="background:#f9e2af; color:#11111b; margin-left:10px;">Restart</button>
         <button id="kill-btn" style="background:#f38ba8; color:#11111b; margin-left:5px;">Kill Server</button>
@@ -208,8 +211,9 @@
         const nodeInfo = document.getElementById('node-info');
         const relatedBody = document.getElementById('related-body');
         const status = document.getElementById('status');
-        const scanProgress = document.getElementById('scan-progress');
-        const heartbeatDisplay = document.getElementById('heartbeat');
+         const scanProgress = document.getElementById('scan-progress');
+         const heartbeatDisplay = document.getElementById('heartbeat');
+         const searchStatus = document.getElementById('search-status');
         
                 let progressInterval = null;
         
@@ -285,12 +289,20 @@
                 
                 // Move existing nodes to appropriate children
                 for (const node of this.nodes) {
-                    this.insert(node);
+                    this.insert(node, 5); // Start with some recursion depth
                 }
                 this.nodes = [];
             }
 
-            insert(node) {
+            insert(node, recursionDepth = 0) {
+                // Prevent infinite recursion due to identical coordinates
+                if (recursionDepth > 20) {
+                    // Apply tiny random offset and retry
+                    node.x += (Math.random() - 0.5) * 0.001;
+                    node.y += (Math.random() - 0.5) * 0.001;
+                    recursionDepth = 0;
+                }
+
                 if (!this.contains(node)) return false;
 
                 if (!this.divided && this.nodes.length < this.capacity) {
@@ -304,7 +316,7 @@
                 }
 
                 for (const child of this.children) {
-                    if (child.insert(node)) {
+                    if (child.insert(node, recursionDepth + 1)) {
                         this.updateCenterOfMass(node);
                         return true;
                     }
@@ -381,10 +393,22 @@
             // More gentle force scaling for large datasets
             const adaptiveForceMultiplier = Math.min(simulationAlpha, 0.5 + (0.5 * Math.log10(nodes.length + 1) / Math.log10(1001)));
 
-            // Build quad tree
+            // Build quad tree with coordinate deduplication
             const bounds = { x: 0, y: 0, width: width, height: height };
             const quadTree = new QuadTree(bounds);
-            nodes.forEach(node => quadTree.insert(node));
+            
+            // Prevent infinite recursion by deduplicating coordinates
+            const seenCoords = new Set();
+            nodes.forEach(node => {
+                const key = `${node.x.toFixed(3)}|${node.y.toFixed(3)}`;
+                if (seenCoords.has(key)) {
+                    // Apply tiny random offset for duplicate coordinates
+                    node.x += (Math.random() - 0.5) * 0.01;
+                    node.y += (Math.random() - 0.5) * 0.01;
+                }
+                seenCoords.add(`${node.x.toFixed(3)}|${node.y.toFixed(3)}`);
+                quadTree.insert(node);
+            });
 
             // Calculate repulsion using Barnes-Hut with force normalization
             let totalForceMagnitude = 0;
@@ -645,17 +669,29 @@
             input.click();
         });
 
-        searchInput.addEventListener('input', (e) => {
-            const term = searchInput.value.toLowerCase();
-            if (term.length < 2) return;
-            const found = nodes.find(n => n.name.toLowerCase().includes(term));
-            if (found) {
-                selectNode(found);
-                // PAN TO THE SEARCHED NODE - smooth pan
-                transform.x = (width / 2 - found.x) * transform.k;
-                transform.y = (height / 2 - found.y) * transform.k;
-            }
-        });
+         searchInput.addEventListener('input', (e) => {
+             const term = searchInput.value.toLowerCase();
+             
+             if (term.length < 2) {
+                 searchStatus.textContent = '';
+                 searchStatus.style.color = '';
+                 return;
+             }
+             
+             const found = nodes.find(n => n.name.toLowerCase().includes(term));
+             if (found) {
+                 searchStatus.textContent = '✓ Found';
+                 searchStatus.style.color = '#a6e3a1'; // Green
+                 uiLog(`Search Found: ${term} -> ${found.name}`);
+                 selectNode(found);
+                 // PAN TO THE SEARCHED NODE - smooth pan
+                 transform.x = (width / 2 - found.x) * transform.k;
+                 transform.y = (height / 2 - found.y) * transform.k;
+             } else {
+                 searchStatus.textContent = '✗ Not found';
+                 searchStatus.style.color = '#f38ba8'; // Pink/red
+             }
+         });
 
         restartBtn.addEventListener('click', async () => {
             if (confirm('Restart server? This will close and reopen the app.')) {
@@ -944,18 +980,7 @@
             return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
         }
 
-        searchInput.addEventListener('input', (e) => {
-            const term = searchInput.value.toLowerCase();
-            if (term.length < 2) return;
-            const found = nodes.find(n => n.name.toLowerCase().includes(term));
-            if (found) {
-                uiLog(`Search Found: ${term} -> ${found.name}`);
-                selectNode(found);
-                // PAN TO THE SEARCHED NODE - smooth pan
-                transform.x = (width / 2 - found.x) * transform.k;
-                transform.y = (height / 2 - found.y) * transform.k;
-            }
-        });
+         // Search functionality moved to main search listener
 
 
         requestAnimationFrame(draw);
