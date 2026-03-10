@@ -68,7 +68,7 @@ This program treats the filesystem as a high-dimensional universe where files ar
 
 ### Documentation
 - **Theoretical Concept**: [English](_theory/concept.md#english-version) / [ภาษาไทย](_theory/concept.md#ภาษาไทย)
-- **Search Physics (Red Energy)**: [Red Energy Gravity Theory](_theory/red_energy_gravity.md)
+- **Search Physics (Red Energy)**: [English Theory](_theory/red_energy_gravity.md) / [ภาษาไทย](_theory/red_energy_gravity_th.md)
 - **User Manual & Features**: [English](_doc/manual.md#english-version) / [ภาษาไทย](_doc/manual.md#ภาษาไทย)
 
 ## Features
