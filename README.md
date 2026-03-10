@@ -176,6 +176,7 @@ See theory documents:
 ### UI/UX
 - **Navigation bar overflow**: On smaller screens or when using many controls, the toolbar may extend beyond the visible area. Use the browser's horizontal scroll or reduce the number of visible controls.
 - **Spacing and Rotate sliders**: These controls currently have limited effect on the force simulation. A future update will enhance their functionality.
+- **Drag behavior confusion**: Files may move together unexpectedly due to semantic similarity links. See [_doc/DRAG_BEHAVIOR_EXPLAINED_BILINGUAL.md](_doc/DRAG_BEHAVIOR_EXPLAINED_BILINGUAL.md) for detailed explanation.
 
 ### Functional Bugs
 - **Browse folder button**: The folder browser dialog may not work correctly in all browsers. Please enter the folder path manually as a workaround.
@@ -184,6 +185,26 @@ See theory documents:
   - **Cause**: Identical node coordinates trigger infinite recursion
   - **Impact**: Minor - system includes fallback mechanisms
   - **Details**: See [_theory/known_bug.md](_theory/known_bug.md)
+
+## Common Confusions & Explanations
+
+### 🤔 Why do unrelated files move together when dragging?
+Files move together because they share **semantic similarity** (>75% similarity score), not because they're in the same folder.
+
+**Learn more**: Detailed explanation in [_doc/DRAG_BEHAVIOR_EXPLAINED_BILINGUAL.md](_doc/DRAG_BEHAVIOR_EXPLAINED_BILINGUAL.md)
+
+### 🔗 How are files connected?
+Files are linked based on:
+- File extensions and patterns
+- Content similarity
+- Functional relationships  
+- Directory proximity structures
+
+### 📊 Why search shows "Found 20 nodes" but only copies 1?
+Search should copy **all matching files** to clipboard. If not working, check browser clipboard permissions.
+
+### 🎯 Why some files seem visually "far apart" but connected?
+Visual distance ≠ semantic similarity. Files can be semantically close while visually separated.
 
 ## License
 Distributed under the **MIT License**. See `LICENSE` for more information.
