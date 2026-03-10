@@ -42,7 +42,7 @@ Red Energy nodes are elevated to a higher visual tier in the rendering pipeline:
 ## 4. Vortex Visualization (UI Display)
 The gravity source is rendered as a multi-layered aesthetic element:
 
-![UI Controls and Simulation Status](../_doc/Screenshot-2026-03-10-004132.png)
+![UI Controls and Simulation Status](../_doc/Screenshot 2026-03-10-220442.png)
 
 - **Core Singularity**: A solid `#ff4d4d` circle with a `25px` shadow blur, representing the densest part of the energy field.
 - **Interaction Ring**: A white dashed circle (`setLineDash([5, 5])`) at $1.5R$ radius, signaling to the user that the element is "Grabable" and interactive.
