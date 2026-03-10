@@ -87,6 +87,8 @@ This program treats the filesystem as a high-dimensional universe where files ar
 
 ![File Graph with Controls](_doc/Screenshot-2026-03-10-004132.png)
 
+![Red Energy Interaction](_doc/Screenshot 2026-03-10 220442.png)
+
 ## New Features (Update 2026-03-10)
 
 ### 🔴 Red Energy Search Attractor (Vortex)
