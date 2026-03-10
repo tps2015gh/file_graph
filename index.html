@@ -118,11 +118,12 @@
 <body>
     <header>
          <div style="font-weight: bold; font-size: 1.2rem; min-width: 80px;">File Graph</div>
-         <div style="display: flex; align-items: center; gap: 5px; margin-left: 10px; flex-grow: 1;">
-             <label style="font-size: 0.8rem; white-space: nowrap;">Path:</label>
-             <input type="text" id="dir-input" placeholder="e.g. C:\\Users" style="flex-grow: 1; min-width: 150px; padding: 4px; background: #181825; border: 1px solid #313244; color: #cdd6f4;">
-             <button id="browse-btn" style="background:#313244; color:#cdd6f4; border:1px solid #45475a; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:0.8rem;">Browse...</button>
-         </div>
+          <div style="display: flex; align-items: center; gap: 5px; margin-left: 10px; flex-grow: 1;">
+              <button id="parent-btn" title="Go to parent folder" style="background:#313244; color:#cdd6f4; border:1px solid #45475a; padding:4px 6px; border-radius:4px; cursor:pointer; font-size:0.7rem; display: none;">⬆️</button>
+              <label style="font-size: 0.8rem; white-space: nowrap;">Path:</label>
+              <input type="text" id="dir-input" placeholder="e.g. C:\\Users" style="flex-grow: 1; min-width: 150px; padding: 4px; background: #181825; border: 1px solid #313244; color: #cdd6f4;">
+              <button id="browse-btn" style="background:#313244; color:#cdd6f4; border:1px solid #45475a; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:0.8rem;">Browse...</button>
+          </div>
           <div class="search-container" style="flex-grow: 5;">
               <input type="text" id="search-input" placeholder="Search filename... (e.g. 'main' or '.go')" style="width: 100%;">
               <span id="search-status" style="margin-left: 10px; font-size: 0.75rem; min-width: 60px;"></span>
@@ -695,9 +696,10 @@
             }
         }
 
-        scanBtn.addEventListener('click', scan);
+         scanBtn.addEventListener('click', scan);
+         document.getElementById('parent-btn').addEventListener('click', navigateToParentFolder);
 
-        browseBtn.addEventListener('click', () => {
+         browseBtn.addEventListener('click', () => {
             const input = document.createElement('input');
             input.type = 'file';
             input.webkitdirectory = true;
@@ -734,24 +736,39 @@
                   return;
               }
               
-              // Find ALL matching nodes
-              const foundNodes = nodes.filter(n => n.name.toLowerCase().includes(term));
-              
-              if (foundNodes.length > 0) {
-                  searchStatus.textContent = `✓ Found ${foundNodes.length} nodes`;
-                  searchStatus.style.color = '#a6e3a1'; // Green
-                  uiLog(`Search Found: ${term} -> ${foundNodes.length} matches`);
+               // Find ALL matching nodes
+               const foundNodes = nodes.filter(n => n.name.toLowerCase().includes(term));
+               
+               if (foundNodes.length > 0) {
+                   searchStatus.textContent = `✓ Found ${foundNodes.length} nodes`;
+                   searchStatus.style.color = '#a6e3a1'; // Green
+                   uiLog(`Search Found: ${term} -> ${foundNodes.length} matches`);
+                   
+                   // Debug: Verify file count
+                   console.log(`🔍 Search "${term}" found ${foundNodes.length} files:`);
+                   foundNodes.forEach(node => console.log(`  📄 ${node.path}`));
                   
-                  // Copy ALL paths to clipboard
-                  const allPaths = foundNodes.map(n => n.path).join('\n');
-                  navigator.clipboard.writeText(allPaths).then(() => {
-                      console.log(`Copied ${foundNodes.length} paths to clipboard:`);
-                      console.log(allPaths);
-                      uiLog(`Copied ${foundNodes.length} file paths to clipboard`);
-                  }).catch(err => {
-                      console.error('Clipboard copy failed:', err);
-                      uiLog('Clipboard copy failed - check browser permissions');
-                  });
+                   // Copy ALL paths to clipboard
+                   const allPaths = foundNodes.map(n => n.path).join('\n');
+                   
+                   // Add small delay to ensure clipboard permission
+                   setTimeout(() => {
+                       navigator.clipboard.writeText(allPaths).then(() => {
+                           console.log(`✅ Copied ${foundNodes.length} paths to clipboard:`);
+                           console.log(allPaths);
+                           uiLog(`📋 Copied ${foundNodes.length} file paths to clipboard`);
+                           
+                           // Also update status to show copy success
+                           searchStatus.textContent = `✓ Found ${foundNodes.length} nodes (Copied!)`;
+                           
+                       }).catch(err => {
+                           console.error('❌ Clipboard copy failed:', err);
+                           uiLog('⚠️ Clipboard copy failed - try clicking a file instead');
+                           
+                           // Show fallback message
+                           searchStatus.textContent = `✓ Found ${foundNodes.length} nodes (Click file)`;
+                       });
+                   }, 100);
                   
                   // Log search to files.log
                   fetch('/api/filelog', {
@@ -927,20 +944,58 @@
             status.textContent = 'Spread reset!';
         });
 
-        canvas.addEventListener('mousedown', (e) => {
-            const rect = canvas.getBoundingClientRect();
-            // Convert screen coordinates to world coordinates
-            const mx = (e.clientX - rect.left - width/2 - transform.x) / transform.k + width/2;
-            const my = (e.clientY - rect.top - height/2 - transform.y) / transform.k + height/2;
+         let lastClickTime = 0;
+         let lastClickedNode = null;
 
-            let found = null;
-            nodes.forEach(n => {
-                const dx = n.x - mx;
-                const dy = n.y - my;
-                if (Math.sqrt(dx * dx + dy * dy) < 15 / transform.k) {
-                    found = n;
-                }
-            });
+         canvas.addEventListener('mousedown', (e) => {
+             const rect = canvas.getBoundingClientRect();
+             // Convert screen coordinates to world coordinates
+             const mx = (e.clientX - rect.left - width/2 - transform.x) / transform.k + width/2;
+             const my = (e.clientY - rect.top - height/2 - transform.y) / transform.k + height/2;
+
+             let found = null;
+             nodes.forEach(n => {
+                 const dx = n.x - mx;
+                 const dy = n.y - my;
+                 if (Math.sqrt(dx * dx + dy * dy) < 15 / transform.k) {
+                     found = n;
+                 }
+             });
+
+              if (found) {
+                  // Check for double-click
+                  const currentTime = Date.now();
+                  if (currentTime - lastClickTime < 300 && lastClickedNode === found) {
+                      // Double-click detected - navigate into folder
+                      if (found.is_folder) {
+                          navigateToFolder(found.path);
+                          return;
+                      }
+                  }
+                  
+                  lastClickTime = currentTime;
+                  lastClickedNode = found;
+                  
+                  uiLog(`Select Node: ${found.name}`);
+                  // Calm the simulation - don't add energy
+                  simulationAlpha = Math.min(simulationAlpha, 0.3);
+                  draggedNode = found;
+                  
+                  // Find all connected nodes to drag together
+                  draggedConnectedNodes = findConnectedNodes(found);
+                  uiLog(`Dragging ${draggedConnectedNodes.length + 1} nodes together`);
+                  
+                  selectNode(found);
+               } else {
+                  isPanning = true;
+                  simulationAlpha = 0.1;
+                  lastMouse = { x: e.clientX, y: e.clientY };
+                  selectedNode = null;
+                  detailsPanel.style.display = 'none';
+                  // Hide bottom display
+                  document.getElementById('selected-node-info').style.display = 'none';
+              }
+         });
 
              if (found) {
                  uiLog(`Select Node: ${found.name}`);
@@ -1124,7 +1179,7 @@
             return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
         }
 
-         function findConnectedNodes(startNode, maxDepth = 1) {
+         function findConnectedNodes(startNode, maxDepth = 0) {
              const visited = new Set();
              const connected = [];
              
@@ -1133,17 +1188,26 @@
                  visited.add(node.id);
                  if (node !== startNode) connected.push(node);
                  
-                 // Find all nodes connected to this node
-                 links.forEach(link => {
-                     if (link.source === node.id || link.target === node.id) {
-                         const otherId = link.source === node.id ? link.target : link.source;
-                         const otherNode = nodes.find(n => n.id === otherId);
-                         if (otherNode) traverse(otherNode, depth + 1);
-                     }
-                 });
+                 // Find only DIRECT connections (depth 0 = only immediate neighbors)
+                 if (depth < maxDepth) {
+                     links.forEach(link => {
+                         if (link.source === node.id || link.target === node.id) {
+                             const otherId = link.source === node.id ? link.target : link.source;
+                             const otherNode = nodes.find(n => n.id === otherId);
+                             if (otherNode) traverse(otherNode, depth + 1);
+                         }
+                     });
+                 }
              }
              
              traverse(startNode, 0);
+             
+             // Debug: Show which nodes are being dragged together
+             if (connected.length > 0) {
+                 console.log(`🧲 Dragging ${connected.length} directly connected nodes:`);
+                 connected.forEach(node => console.log(`  🔗 ${node.name}`));
+             }
+             
              return connected;
          }
 
@@ -1181,34 +1245,84 @@
             }, 100);
         }
 
-        function applyBounceEnergy(node, energyX, energyY) {
-            // Apply energy with physics simulation
-            const bounceDecay = 0.85; // Energy decays over time
-            const maxVelocity = 5;
-            
-            // Add energy to node velocity
-            node.vx += Math.max(Math.min(energyX, maxVelocity), -maxVelocity);
-            node.vy += Math.max(Math.min(energyY, maxVelocity), -maxVelocity);
-            
-            // Create bounce animation
-            let bounceCount = 0;
-            const maxBounces = 8;
-            
-            const bounceInterval = setInterval(() => {
-                // Apply decay
-                node.vx *= bounceDecay;
-                node.vy *= bounceDecay;
-                
-                // Stop bouncing when energy is low
-                if (Math.abs(node.vx) < 0.1 && Math.abs(node.vy) < 0.1 || bounceCount >= maxBounces) {
-                    clearInterval(bounceInterval);
-                    node.vx = 0;
-                    node.vy = 0;
-                }
-                
-                bounceCount++;
-            }, 50);
-        }
+         function applyBounceEnergy(node, energyX, energyY) {
+             // Apply energy with physics simulation
+             const bounceDecay = 0.85; // Energy decays over time
+             const maxVelocity = 5;
+             
+             // Add energy to node velocity
+             node.vx += Math.max(Math.min(energyX, maxVelocity), -maxVelocity);
+             node.vy += Math.max(Math.min(energyY, maxVelocity), -maxVelocity);
+             
+             // Create bounce animation
+             let bounceCount = 0;
+             const maxBounces = 8;
+             
+             const bounceInterval = setInterval(() => {
+                 // Apply decay
+                 node.vx *= bounceDecay;
+                 node.vy *= bounceDecay;
+                 
+                 // Stop bouncing when energy is low
+                 if (Math.abs(node.vx) < 0.1 && Math.abs(node.vy) < 0.1 || bounceCount >= maxBounces) {
+                     clearInterval(bounceInterval);
+                     node.vx = 0;
+                     node.vy = 0;
+                 }
+                 
+                 bounceCount++;
+             }, 50);
+         }
+
+         function navigateToFolder(folderPath) {
+             console.log(`📁 Navigating to folder: ${folderPath}`);
+             uiLog(`Navigating to folder: ${folderPath}`);
+             
+             // Update the directory input
+             dirInput.value = folderPath;
+             
+             // Show parent button
+             document.getElementById('parent-btn').style.display = 'block';
+             
+             // Trigger scan
+             scan();
+         }
+
+         function navigateToParentFolder() {
+             const currentPath = dirInput.value;
+             const parentPath = getParentPath(currentPath);
+             
+             if (parentPath) {
+                 console.log(`⬆️ Navigating to parent folder: ${parentPath}`);
+                 uiLog(`Navigating to parent folder: ${parentPath}`);
+                 
+                 dirInput.value = parentPath;
+                 scan();
+                 
+                 // Hide parent button if at root
+                 if (parentPath === '' || parentPath === '.' || parentPath === currentPath) {
+                     document.getElementById('parent-btn').style.display = 'none';
+                 }
+             }
+         }
+
+         function getParentPath(path) {
+             if (!path || path === '.' || path === '' || path === '/' || path === '\\\\') {
+                 return null;
+             }
+             
+             // Remove trailing slash if exists
+             path = path.replace(/[\\/]+$/, '');
+             
+             // Find last slash
+             const lastSlash = Math.max(path.lastIndexOf('\\'), path.lastIndexOf('/'));
+             
+             if (lastSlash > 0) {
+                 return path.substring(0, lastSlash);
+             } else {
+                 return '.';
+             }
+         }
 
          // Search functionality moved to main search listener
 
