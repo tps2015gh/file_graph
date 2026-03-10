@@ -625,7 +625,8 @@
                             (l.target === selectedNode.id && l.source === n.id)
                         );
                     }
-                    if (!isRelated) opacity = 0.15;
+                    // Search results should always be prominent
+                    if (!isRelated && !n.searchHighlight) opacity = 0.15;
                 }
 
                 ctx.beginPath();
