@@ -4,6 +4,8 @@
 
 A standalone Go web application to scan directories, extract file metadata, calculate similarity embeddings (26D Vector Space), and visualize relationships as an interactive 2D interactive graph.
 
+**The Tale Behind the Code**: Read the magical journey of creation in [taleTheTravelOfMagicAndMath.md](taleTheTravelOfMagicAndMath.md)
+
 ## Build & Compilation Requirements
 
 ### Go Language Version
