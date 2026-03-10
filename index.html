@@ -244,6 +244,8 @@
         let width, height;
         let selectedNode = null;
         let draggedNode = null;
+        let draggedConnectedNodes = []; // Array of connected nodes being dragged together
+        let dragDelta = { x: 0, y: 0 }; // Delta movement for connected nodes
         let kineticEnergy = 0;
         let simulationAlpha = 1.0;
         let transform = { x: 0, y: 0, k: 1 };
@@ -555,36 +557,41 @@
                 const radius = (n.is_folder ? 6 : 4) / transform.k;
                 ctx.arc(n.x, n.y, radius, 0, Math.PI * 2);
                 
-                if (n.searchHighlight && n.highlightAlpha > 0) {
-                    // Search highlight glow effect
-                    ctx.fillStyle = n.highlightColor || '#ff6b6b';
-                    ctx.globalAlpha = n.highlightAlpha;
-                    ctx.shadowBlur = 20 * n.highlightAlpha;
-                    ctx.shadowColor = n.highlightColor || '#ff6b6b';
-                } else if (n === selectedNode) {
-                    ctx.fillStyle = '#f5c2e7';
-                    ctx.shadowBlur = 15;
-                    ctx.shadowColor = '#f5c2e7';
-                } else if (n.is_folder) {
-                    ctx.fillStyle = `rgba(249, 226, 175, ${opacity})`;
-                    ctx.shadowBlur = 5 * opacity;
-                    ctx.shadowColor = '#f9e2af';
-                } else {
-                    ctx.fillStyle = `rgba(137, 180, 250, ${opacity})`;
-                    ctx.shadowBlur = 2 * opacity;
-                    ctx.shadowColor = '#89b4fa';
-                }
+                 if (n.searchHighlight && n.highlightAlpha > 0) {
+                     // Search highlight glow effect
+                     ctx.fillStyle = n.highlightColor || '#ff6b6b';
+                     ctx.globalAlpha = n.highlightAlpha;
+                     ctx.shadowBlur = 20 * n.highlightAlpha;
+                     ctx.shadowColor = n.highlightColor || '#ff6b6b';
+                 } else if (draggedConnectedNodes.includes(n)) {
+                     // Highlight connected nodes during drag
+                     ctx.fillStyle = '#a6e3a1';
+                     ctx.shadowBlur = 10;
+                     ctx.shadowColor = '#a6e3a1';
+                 } else if (n === selectedNode) {
+                     ctx.fillStyle = '#f5c2e7';
+                     ctx.shadowBlur = 15;
+                     ctx.shadowColor = '#f5c2e7';
+                 } else if (n.is_folder) {
+                     ctx.fillStyle = `rgba(249, 226, 175, ${opacity})`;
+                     ctx.shadowBlur = 5 * opacity;
+                     ctx.shadowColor = '#f9e2af';
+                 } else {
+                     ctx.fillStyle = `rgba(137, 180, 250, ${opacity})`;
+                     ctx.shadowBlur = 2 * opacity;
+                     ctx.shadowColor = '#89b4fa';
+                 }
                 
                 ctx.fill();
                 ctx.shadowBlur = 0;
                 ctx.globalAlpha = 1.0;
 
-                // Label for large or selected nodes
-                if (n === selectedNode || (isRelated && nodes.length < 100)) {
-                    ctx.fillStyle = `rgba(205, 214, 244, ${opacity})`;
-                    ctx.font = `${10 / transform.k}px sans-serif`;
-                    ctx.fillText(n.name, n.x + 8 / transform.k, n.y + 4 / transform.k);
-                }
+                 // Label for large or selected nodes
+                 if (n === selectedNode || (isRelated && nodes.length < 100) || draggedConnectedNodes.includes(n)) {
+                     ctx.fillStyle = `rgba(205, 214, 244, ${opacity})`;
+                     ctx.font = `${10 / transform.k}px sans-serif`;
+                     ctx.fillText(n.name, n.x + 8 / transform.k, n.y + 4 / transform.k);
+                 }
             });
 
             ctx.restore();
@@ -894,13 +901,18 @@
                 }
             });
 
-            if (found) {
-                uiLog(`Select Node: ${found.name}`);
-                // Calm the simulation - don't add energy
-                simulationAlpha = Math.min(simulationAlpha, 0.3);
-                draggedNode = found;
-                selectNode(found);
-             } else {
+             if (found) {
+                 uiLog(`Select Node: ${found.name}`);
+                 // Calm the simulation - don't add energy
+                 simulationAlpha = Math.min(simulationAlpha, 0.3);
+                 draggedNode = found;
+                 
+                 // Find all connected nodes to drag together
+                 draggedConnectedNodes = findConnectedNodes(found);
+                 uiLog(`Dragging ${draggedConnectedNodes.length + 1} nodes together`);
+                 
+                 selectNode(found);
+              } else {
                  isPanning = true;
                  simulationAlpha = 0.1;
                  lastMouse = { x: e.clientX, y: e.clientY };
@@ -911,19 +923,31 @@
              }
         });
 
-        window.addEventListener('mousemove', (e) => {
-            if (draggedNode) {
-                const rect = canvas.getBoundingClientRect();
-                const mx = (e.clientX - rect.left - width/2 - transform.x) / transform.k + width/2;
-                const my = (e.clientY - rect.top - height/2 - transform.y) / transform.k + height/2;
-                
-                // For "bounce" effect on release, track velocity during drag
-                draggedNode.vx = (mx - draggedNode.x);
-                draggedNode.vy = (my - draggedNode.y);
-                
-                draggedNode.x = mx;
-                draggedNode.y = my;
-            } else if (isPanning) {
+         window.addEventListener('mousemove', (e) => {
+             if (draggedNode) {
+                 const rect = canvas.getBoundingClientRect();
+                 const mx = (e.clientX - rect.left - width/2 - transform.x) / transform.k + width/2;
+                 const my = (e.clientY - rect.top - height/2 - transform.y) / transform.k + height/2;
+                 
+                 // Calculate movement delta
+                 const deltaX = mx - draggedNode.x;
+                 const deltaY = my - draggedNode.y;
+                 
+                 // For "bounce" effect on release, track velocity during drag
+                 draggedNode.vx = deltaX;
+                 draggedNode.vy = deltaY;
+                 
+                 draggedNode.x = mx;
+                 draggedNode.y = my;
+                 
+                 // Move all connected nodes by the same delta
+                 draggedConnectedNodes.forEach(connectedNode => {
+                     if (connectedNode !== draggedNode) {
+                         connectedNode.x += deltaX;
+                        connectedNode.y += deltaY;
+                     }
+                 });
+             } else if (isPanning) {
                 transform.x += (e.clientX - lastMouse.x);
                 transform.y += (e.clientY - lastMouse.y);
                 lastMouse = { x: e.clientX, y: e.clientY };
@@ -955,10 +979,11 @@
                     applyBounceEnergy(draggedNode, energyX, energyY);
                     uiLog(`Bounce! (${energyX.toFixed(1)}, ${energyY.toFixed(1)})`);
                 }
-            }
-            
-            draggedNode = null;
-            isPanning = false;
+             }
+             
+             draggedNode = null;
+             draggedConnectedNodes = [];
+             isPanning = false;
         });
 
         canvas.addEventListener('wheel', (e) => {
@@ -1058,12 +1083,35 @@
             return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
         }
 
-        function highlightSearchResults(foundNodes) {
-            // Reset all nodes to normal appearance
-            nodes.forEach(n => {
-                n.searchHighlight = false;
-                n.highlightAlpha = 0;
-            });
+         function findConnectedNodes(startNode, maxDepth = 1) {
+             const visited = new Set();
+             const connected = [];
+             
+             function traverse(node, depth) {
+                 if (visited.has(node.id) || depth > maxDepth) return;
+                 visited.add(node.id);
+                 if (node !== startNode) connected.push(node);
+                 
+                 // Find all nodes connected to this node
+                 links.forEach(link => {
+                     if (link.source === node.id || link.target === node.id) {
+                         const otherId = link.source === node.id ? link.target : link.source;
+                         const otherNode = nodes.find(n => n.id === otherId);
+                         if (otherNode) traverse(otherNode, depth + 1);
+                     }
+                 });
+             }
+             
+             traverse(startNode, 0);
+             return connected;
+         }
+
+         function highlightSearchResults(foundNodes) {
+             // Reset all nodes to normal appearance
+             nodes.forEach(n => {
+                 n.searchHighlight = false;
+                 n.highlightAlpha = 0;
+             });
             
             // Highlight all matching nodes
             foundNodes.forEach((node, index) => {
