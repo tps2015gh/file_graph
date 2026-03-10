@@ -93,6 +93,9 @@ This program treats the filesystem as a high-dimensional universe where files ar
 
 ### 🔴 Red Energy Search Attractor (Vortex)
 When you search for files, a high-density **Red Energy Vortex** is created:
+
+![UI and Controls](_doc/Screenshot-2026-03-10-004132.png)
+
 - **Automatic Offset**: Initially spawns 300px to the right of the results center, separating search matches from the main "old colony."
 - **Draggable Gravity**: You can manually click and drag the **RED ENERGY** vortex anywhere on the canvas to pull the search results with it.
 - **Dynamic Physics**: Features a pulsing visual effect and a "swirl" vortex force that organizes results as they approach the center.
