@@ -555,7 +555,13 @@
                 const radius = (n.is_folder ? 6 : 4) / transform.k;
                 ctx.arc(n.x, n.y, radius, 0, Math.PI * 2);
                 
-                if (n === selectedNode) {
+                if (n.searchHighlight && n.highlightAlpha > 0) {
+                    // Search highlight glow effect
+                    ctx.fillStyle = n.highlightColor || '#ff6b6b';
+                    ctx.globalAlpha = n.highlightAlpha;
+                    ctx.shadowBlur = 20 * n.highlightAlpha;
+                    ctx.shadowColor = n.highlightColor || '#ff6b6b';
+                } else if (n === selectedNode) {
                     ctx.fillStyle = '#f5c2e7';
                     ctx.shadowBlur = 15;
                     ctx.shadowColor = '#f5c2e7';
@@ -571,6 +577,7 @@
                 
                 ctx.fill();
                 ctx.shadowBlur = 0;
+                ctx.globalAlpha = 1.0;
 
                 // Label for large or selected nodes
                 if (n === selectedNode || (isRelated && nodes.length < 100)) {
@@ -669,29 +676,52 @@
             input.click();
         });
 
-         searchInput.addEventListener('input', (e) => {
-             const term = searchInput.value.toLowerCase();
-             
-             if (term.length < 2) {
-                 searchStatus.textContent = '';
-                 searchStatus.style.color = '';
-                 return;
-             }
-             
-             const found = nodes.find(n => n.name.toLowerCase().includes(term));
-             if (found) {
-                 searchStatus.textContent = '✓ Found';
-                 searchStatus.style.color = '#a6e3a1'; // Green
-                 uiLog(`Search Found: ${term} -> ${found.name}`);
-                 selectNode(found);
-                 // PAN TO THE SEARCHED NODE - smooth pan
-                 transform.x = (width / 2 - found.x) * transform.k;
-                 transform.y = (height / 2 - found.y) * transform.k;
-             } else {
-                 searchStatus.textContent = '✗ Not found';
-                 searchStatus.style.color = '#f38ba8'; // Pink/red
-             }
-         });
+          searchInput.addEventListener('input', (e) => {
+              const term = searchInput.value.toLowerCase();
+              
+              if (term.length < 2) {
+                  searchStatus.textContent = '';
+                  searchStatus.style.color = '';
+                  // Reset selection when clearing search
+                  if (selectedNode) {
+                      selectedNode = null;
+                      document.getElementById('selected-node-info').style.display = 'none';
+                      detailsPanel.style.display = 'none';
+                  }
+                  return;
+              }
+              
+              // Find ALL matching nodes
+              const foundNodes = nodes.filter(n => n.name.toLowerCase().includes(term));
+              
+              if (foundNodes.length > 0) {
+                  searchStatus.textContent = `✓ Found ${foundNodes.length} nodes`;
+                  searchStatus.style.color = '#a6e3a1'; // Green
+                  uiLog(`Search Found: ${term} -> ${foundNodes.length} matches`);
+                  
+                  // Copy ALL paths to clipboard
+                  const allPaths = foundNodes.map(n => n.path).join('\n');
+                  navigator.clipboard.writeText(allPaths).then(() => {
+                      console.log(`${foundNodes.length} paths copied to clipboard`);
+                  });
+                  
+                  // Select first node but highlight all
+                  selectNode(foundNodes[0]);
+                  
+                  // Pan to center of all found nodes
+                  const avgX = foundNodes.reduce((sum, n) => sum + n.x, 0) / foundNodes.length;
+                  const avgY = foundNodes.reduce((sum, n) => sum + n.y, 0) / foundNodes.length;
+                  transform.x = (width / 2 - avgX) * transform.k;
+                  transform.y = (height / 2 - avgY) * transform.k;
+                  
+                  // Add visual highlighting for all matches
+                  highlightSearchResults(foundNodes);
+                  
+              } else {
+                  searchStatus.textContent = '✗ Not found';
+                  searchStatus.style.color = '#f38ba8'; // Pink/red
+              }
+          });
 
         restartBtn.addEventListener('click', async () => {
             if (confirm('Restart server? This will close and reopen the app.')) {
@@ -894,6 +924,32 @@
         });
 
         window.addEventListener('mouseup', () => {
+            if (draggedNode) {
+                // Apply bounce physics if node is near canvas edge
+                const edgeMargin = 50;
+                const maxEnergy = 10;
+                
+                // Check if node is near any edge
+                const nearLeft = draggedNode.x < edgeMargin;
+                const nearRight = draggedNode.x > width - edgeMargin;
+                const nearTop = draggedNode.y < edgeMargin;
+                const nearBottom = draggedNode.y > height - edgeMargin;
+                
+                if (nearLeft || nearRight || nearTop || nearBottom) {
+                    // Calculate bounce energy based on how close to edge
+                    let energyX = 0, energyY = 0;
+                    
+                    if (nearLeft) energyX = maxEnergy * (1 - draggedNode.x / edgeMargin);
+                    if (nearRight) energyX = -maxEnergy * (1 - (width - draggedNode.x) / edgeMargin);
+                    if (nearTop) energyY = maxEnergy * (1 - draggedNode.y / edgeMargin);
+                    if (nearBottom) energyY = -maxEnergy * (1 - (height - draggedNode.y) / edgeMargin);
+                    
+                    // Apply bounce energy
+                    applyBounceEnergy(draggedNode, energyX, energyY);
+                    uiLog(`Bounce! (${energyX.toFixed(1)}, ${energyY.toFixed(1)})`);
+                }
+            }
+            
             draggedNode = null;
             isPanning = false;
         });
@@ -978,6 +1034,69 @@
             const sizes = ['B', 'KB', 'MB', 'GB'];
             const i = Math.floor(Math.log(bytes) / Math.log(k));
             return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function highlightSearchResults(foundNodes) {
+            // Reset all nodes to normal appearance
+            nodes.forEach(n => {
+                n.searchHighlight = false;
+                n.highlightAlpha = 0;
+            });
+            
+            // Highlight all matching nodes
+            foundNodes.forEach((node, index) => {
+                node.searchHighlight = true;
+                // Staggered highlight effect based on search order
+                node.highlightAlpha = 1.0;
+                node.highlightColor = `hsl(${(index * 30) % 360}, 80%, 60%)`;
+            });
+            
+            // Animate the highlight effect
+            const highlightInterval = setInterval(() => {
+                let allFaded = true;
+                foundNodes.forEach(node => {
+                    if (node.highlightAlpha > 0.1) {
+                        node.highlightAlpha *= 0.85; // Fade out gradually
+                        allFaded = false;
+                    } else {
+                        node.highlightAlpha = 0;
+                        node.searchHighlight = false;
+                    }
+                });
+                
+                if (allFaded) {
+                    clearInterval(highlightInterval);
+                }
+            }, 100);
+        }
+
+        function applyBounceEnergy(node, energyX, energyY) {
+            // Apply energy with physics simulation
+            const bounceDecay = 0.85; // Energy decays over time
+            const maxVelocity = 5;
+            
+            // Add energy to node velocity
+            node.vx += Math.max(Math.min(energyX, maxVelocity), -maxVelocity);
+            node.vy += Math.max(Math.min(energyY, maxVelocity), -maxVelocity);
+            
+            // Create bounce animation
+            let bounceCount = 0;
+            const maxBounces = 8;
+            
+            const bounceInterval = setInterval(() => {
+                // Apply decay
+                node.vx *= bounceDecay;
+                node.vy *= bounceDecay;
+                
+                // Stop bouncing when energy is low
+                if (Math.abs(node.vx) < 0.1 && Math.abs(node.vy) < 0.1 || bounceCount >= maxBounces) {
+                    clearInterval(bounceInterval);
+                    node.vx = 0;
+                    node.vy = 0;
+                }
+                
+                bounceCount++;
+            }, 50);
         }
 
          // Search functionality moved to main search listener
