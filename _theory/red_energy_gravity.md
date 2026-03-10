@@ -3,6 +3,8 @@
 ## 1. Theory: The "Search Vortex" Concept
 Unlike standard semantic colonies that form naturally via pairwise cosine similarity, **Red Energy Gravity** is a synthetic, high-intensity force field triggered by user queries. It introduces a "Centralized Attractor" model into the distributed N-body simulation to facilitate rapid data discovery.
 
+![Red Energy Attractor Visualization](../_doc/Screenshot 2026-03-10 220442.png)
+
 ### Physical Characteristics:
 - **Offset Genesis**: To maintain the "Star Colony" context, the attractor is born at `(Center_of_Results.x + 300, Center_of_Results.y)`. This creates a visual "migration" from the old colony to the new search-defined space, allowing the user to compare the search results against the original cluster.
 - **Draggable Singularity**: The user can manually reposition the attractor, effectively "steering" the search results across the data universe to investigate relationships with other clusters.
