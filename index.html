@@ -215,29 +215,65 @@
          const heartbeatDisplay = document.getElementById('heartbeat');
          const searchStatus = document.getElementById('search-status');
         
-                let progressInterval = null;
+                 let progressInterval = null;
         
-                async function updateHeartbeat() {
+         // Debug logging
+         console.log('🔄 File Graph Visualizer initialized');
+         console.log('📋 Available endpoints:');
+         console.log('  - /api/heartbeat');
+         console.log('  - /api/filelog');
+         console.log('  - /api/scan');
+         console.log('  - /api/log');
+         console.log('🔧 Starting connectivity check...');
         
-            try {
-                const resp = await fetch('/api/heartbeat');
-                const data = await resp.json();
-                heartbeatDisplay.textContent = `Server: ${data.time} (Alive)`;
-                heartbeatDisplay.style.color = '#a6e3a1';
-            } catch (e) {
-                heartbeatDisplay.textContent = 'Server: Offline';
-                heartbeatDisplay.style.color = '#f38ba8';
-            }
-        }
+          async function updateHeartbeat() {
+             try {
+                 const resp = await fetch('/api/heartbeat');
+                 const data = await resp.json();
+                 document.getElementById('server-status').textContent = `Server: Connected (${data.time})`;
+                 document.getElementById('server-status').style.color = '#a6e3a1'; // Green
+                 
+                 // Test the filelog API on successful connection
+                 await testFileLogAPI();
+                 
+             } catch (e) {
+                 document.getElementById('server-status').textContent = 'Server: Disconnected';
+                 document.getElementById('server-status').style.color = '#f38ba8'; // Red
+                 console.error('Server connection failed:', e);
+             }
+         }
 
-        setInterval(updateHeartbeat, 5000);
-        updateHeartbeat();
+         async function testFileLogAPI() {
+             // Test the filelog API with a simple request
+             try {
+                 const response = await fetch('/api/filelog', {
+                     method: 'POST',
+                     headers: { 'Content-Type': 'application/json' },
+                     body: JSON.stringify({ type: 'test', path: '/test/path', query: 'test_query' })
+                 });
+                 
+                 if (response.ok) {
+                     console.log('✅ FileLog API test successful');
+                 } else {
+                     console.warn('⚠️ FileLog API test failed:', response.status);
+                 }
+             } catch (error) {
+                 console.error('❌ FileLog API test error:', error);
+             }
+         }
 
-        async function uiLog(msg) {
-            try {
-                await fetch(`/api/log?msg=${encodeURIComponent(msg)}`);
-            } catch (e) {}
-        }
+         setInterval(updateHeartbeat, 5000);
+         updateHeartbeat();
+
+         async function uiLog(msg) {
+             console.log('📝 UI Log:', msg);
+             try {
+                 await fetch(`/api/log?msg=${encodeURIComponent(msg)}`);
+                 console.log('✅ Server log successful');
+             } catch (e) {
+                 console.error('❌ Server log failed:', e);
+             }
+         }
 
         let nodes = [];
         let links = [];
@@ -738,34 +774,9 @@
                   
               } else {
                   searchStatus.textContent = '✗ Not found';
-                  searchStatus.style.color = '#f38ba8'; // Pink/red
-              }
-          });
-              
-              // Log search to files.log
-              fetch('/api/filelog', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ type: 'search', query: term })
-              });
-                  
-                  // Select first node but highlight all
-                  selectNode(foundNodes[0]);
-                  
-                  // Pan to center of all found nodes
-                  const avgX = foundNodes.reduce((sum, n) => sum + n.x, 0) / foundNodes.length;
-                  const avgY = foundNodes.reduce((sum, n) => sum + n.y, 0) / foundNodes.length;
-                  transform.x = (width / 2 - avgX) * transform.k;
-                  transform.y = (height / 2 - avgY) * transform.k;
-                  
-                  // Add visual highlighting for all matches
-                  highlightSearchResults(foundNodes);
-                  
-              } else {
-                  searchStatus.textContent = '✗ Not found';
-                  searchStatus.style.color = '#f38ba8'; // Pink/red
-              }
-          });
+                   searchStatus.style.color = '#f38ba8'; // Pink/red
+               }
+           });
 
         restartBtn.addEventListener('click', async () => {
             if (confirm('Restart server? This will close and reopen the app.')) {
