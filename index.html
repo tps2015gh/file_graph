@@ -963,9 +963,17 @@
              transform.k = Math.max(0.002, Math.min(100, transform.k)); // Wider zoom range
         }, { passive: false });
 
-         function selectNode(n) {
-             selectedNode = n;
-             detailsPanel.style.display = 'block';
+          function selectNode(n) {
+              selectedNode = n;
+              detailsPanel.style.display = 'block';
+              
+              // Auto-copy path to clipboard on node select
+              navigator.clipboard.writeText(n.path).then(() => {
+                  console.log(`Path copied: ${n.path}`);
+                  uiLog(`Copied: ${n.path}`);
+              }).catch(err => {
+                  console.error('Clipboard copy failed:', err);
+              });
              
              // Update bottom display
              const selectedInfo = document.getElementById('selected-node-info');
