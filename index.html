@@ -298,6 +298,8 @@
         let linksFilter = 100; // percentage of top links to show
         let maxLinksPerNode = 5; // limit links per node (0 = no limit)
         let filteredLinks = []; // computed filtered links
+        let searchAttractor = null; // Temporary attractor for search results
+        let draggedAttractor = null; // Currently dragged search attractor
 
         function resize() {
             width = canvas.parentElement.clientWidth;
@@ -493,16 +495,45 @@
                 });
             });
 
-            // Add rotation force
-            if (rotationSpeed > 0) {
-                nodes.forEach(n => {
-                    const dx = n.x - width/2;
-                    const dy = n.y - height/2;
-                    const dist = Math.sqrt(dx*dx + dy*dy) || 1;
-                    n.vx += (-dy / dist) * rotationSpeed * dist * adaptiveForceMultiplier;
-                    n.vy += (dx / dist) * rotationSpeed * dist * adaptiveForceMultiplier;
-                });
-            }
+             // Add rotation force
+             if (rotationSpeed > 0) {
+                 nodes.forEach(n => {
+                     const dx = n.x - width/2;
+                     const dy = n.y - height/2;
+                     const dist = Math.sqrt(dx*dx + dy*dy) || 1;
+                     n.vx += (-dy / dist) * rotationSpeed * dist * adaptiveForceMultiplier;
+                     n.vy += (dx / dist) * rotationSpeed * dist * adaptiveForceMultiplier;
+                 });
+             }
+             
+             // Add search attraction force
+             if (searchAttractor) {
+                 updateSearchAttractor();
+                 
+                 nodes.forEach(n => {
+                     if (searchAttractor && searchAttractor.searchNodes.has(n.id)) {
+                         const dx = searchAttractor.x - n.x;
+                         const dy = searchAttractor.y - n.y;
+                         const distSq = dx*dx + dy*dy || 1;
+                         const dist = Math.sqrt(distSq);
+                         
+                         // Stronger attraction when closer to attractor
+                         // Uses energy and normalized distance to create a pulling effect
+                         const distRatio = Math.min(dist / searchAttractor.radius, 1);
+                         const attractionStrength = searchAttractor.energy * (1 - distRatio);
+                         
+                         // Add a bit of "swirl" or "vortex" effect by pushing nodes sideways as they get closer
+                         if (distRatio < 0.2) {
+                             const swirl = (1 - distRatio / 0.2) * 2;
+                             n.vx += (-dy / dist) * swirl;
+                             n.vy += (dx / dist) * swirl;
+                         }
+
+                         n.vx += (dx / dist) * attractionStrength * 0.08;
+                         n.vy += (dy / dist) * attractionStrength * 0.08;
+                     }
+                 });
+             }
 
             // Add link attraction
             filteredLinks.forEach(link => {
@@ -601,12 +632,12 @@
                 const radius = (n.is_folder ? 6 : 4) / transform.k;
                 ctx.arc(n.x, n.y, radius, 0, Math.PI * 2);
                 
-                 if (n.searchHighlight && n.highlightAlpha > 0) {
-                     // Search highlight glow effect
-                     ctx.fillStyle = n.highlightColor || '#ff6b6b';
-                     ctx.globalAlpha = n.highlightAlpha;
-                     ctx.shadowBlur = 20 * n.highlightAlpha;
-                     ctx.shadowColor = n.highlightColor || '#ff6b6b';
+                 if (n.searchHighlight) {
+                     // Force Red for search results
+                     ctx.fillStyle = '#ff4d4d';
+                     ctx.globalAlpha = n.highlightAlpha || 1.0;
+                     ctx.shadowBlur = 15 * (n.highlightAlpha || 1.0);
+                     ctx.shadowColor = '#ff4d4d';
                  } else if (draggedConnectedNodes.includes(n)) {
                      // Highlight connected nodes during drag
                      ctx.fillStyle = '#a6e3a1';
@@ -630,8 +661,8 @@
                 ctx.shadowBlur = 0;
                 ctx.globalAlpha = 1.0;
 
-                  // Label for large or selected nodes
-                  if (n === selectedNode || (isRelated && nodes.length < 100) || draggedConnectedNodes.includes(n)) {
+                  // Label for large, selected, or SEARCH nodes
+                  if (n === selectedNode || n.searchHighlight || (isRelated && nodes.length < 100) || draggedConnectedNodes.includes(n)) {
                       const text = n.name;
                       const textMetrics = ctx.measureText(text);
                       const textWidth = textMetrics.width;
@@ -641,12 +672,17 @@
                       ctx.fillStyle = `rgba(0, 0, 0, ${0.7 * opacity})`;
                       ctx.fillRect(n.x + 6 / transform.k, n.y - 2 / transform.k, textWidth + 4 / transform.k, textHeight);
                       
-                      // Draw text
-                      ctx.fillStyle = `rgba(255, 255, 255, ${opacity})`;
-                      ctx.font = `${10 / transform.k}px sans-serif`;
+                      // Draw text - use red for search highlights
+                      ctx.fillStyle = n.searchHighlight ? '#ff4d4d' : `rgba(255, 255, 255, ${opacity})`;
+                      ctx.font = (n.searchHighlight ? 'bold ' : '') + `${10 / transform.k}px sans-serif`;
                       ctx.fillText(text, n.x + 8 / transform.k, n.y + 4 / transform.k);
                   }
             });
+            
+            // Draw search attractor overlay
+            if (searchAttractor) {
+                drawSearchAttractor();
+            }
 
             ctx.restore();
 
@@ -741,30 +777,50 @@
           searchInput.addEventListener('input', (e) => {
               const term = searchInput.value.toLowerCase();
               
-              if (term.length < 2) {
-                  searchStatus.textContent = '';
-                  searchStatus.style.color = '';
-                  // Reset selection when clearing search
-                  if (selectedNode) {
-                      selectedNode = null;
-                      document.getElementById('selected-node-info').style.display = 'none';
-                      detailsPanel.style.display = 'none';
-                  }
-                  return;
-              }
+               if (term.length < 2) {
+                   searchStatus.textContent = '';
+                   searchStatus.style.color = '';
+                   // Stop active attraction when clearing search, but let it decay
+                   removeSearchAttractor();
+                   
+                   // Clear highlights
+                   nodes.forEach(n => {
+                       n.searchHighlight = false;
+                       n.highlightAlpha = 0;
+                   });
+
+                   // Reset selection when clearing search
+                   if (selectedNode) {
+                       selectedNode = null;
+                       document.getElementById('selected-node-info').style.display = 'none';
+                       detailsPanel.style.display = 'none';
+                   }
+                   return;
+               }
               
                // Find ALL matching nodes
                const foundNodes = nodes.filter(n => n.name.toLowerCase().includes(term));
                
-               if (foundNodes.length > 0) {
-                   searchStatus.textContent = `✓ Found ${foundNodes.length} nodes`;
-                   searchStatus.style.color = '#a6e3a1'; // Green
-                   uiLog(`Search Found: ${term} -> ${foundNodes.length} matches`);
-                   
-                   // Debug: Verify file count
-                   console.log(`🔍 Search "${term}" found ${foundNodes.length} files:`);
-                   foundNodes.forEach(node => console.log(`  📄 ${node.path}`));
+                if (foundNodes.length > 0) {
+                    searchStatus.textContent = `✓ Found ${foundNodes.length} nodes`;
+                    searchStatus.style.color = '#a6e3a1'; // Green
+                    uiLog(`Search Found: ${term} -> ${foundNodes.length} matches`);
+                    
+                    // Update or create search attractor to pull results together
+                    createSearchAttractor(foundNodes);
                   
+                   // Visual highlighting for all matches (stays persistent while term exists)
+                   nodes.forEach(n => {
+                       if (foundNodes.some(f => f.id === n.id)) {
+                           n.searchHighlight = true;
+                           n.highlightAlpha = 1.0;
+                           n.highlightColor = n.highlightColor || '#ff6b6b';
+                       } else {
+                           n.searchHighlight = false;
+                           n.highlightAlpha = 0;
+                       }
+                   });
+
                    // Copy ALL paths to clipboard
                    const allPaths = foundNodes.map(n => n.path).join('\n');
                    
@@ -970,6 +1026,18 @@
              const mx = (e.clientX - rect.left - width/2 - transform.x) / transform.k + width/2;
              const my = (e.clientY - rect.top - height/2 - transform.y) / transform.k + height/2;
 
+             // Check if clicking the attractor first (higher priority for dragging)
+             if (searchAttractor) {
+                 const adx = searchAttractor.x - mx;
+                 const ady = searchAttractor.y - my;
+                 if (Math.sqrt(adx * adx + ady * ady) < 40 / transform.k) {
+                     draggedAttractor = searchAttractor;
+                     uiLog("Dragging Red Search Attractor");
+                     simulationAlpha = Math.max(simulationAlpha, 0.4);
+                     return;
+                 }
+             }
+
              let found = null;
              nodes.forEach(n => {
                  const dx = n.x - mx;
@@ -1038,6 +1106,13 @@
                           connectedNode.y += deltaY;
                      }
                  });
+             } else if (draggedAttractor) {
+                 const rect = canvas.getBoundingClientRect();
+                 const mx = (e.clientX - rect.left - width/2 - transform.x) / transform.k + width/2;
+                 const my = (e.clientY - rect.top - height/2 - transform.y) / transform.k + height/2;
+                 draggedAttractor.x = mx;
+                 draggedAttractor.y = my;
+                 simulationAlpha = Math.max(simulationAlpha, 0.2); // Keep simulation awake
              } else if (isPanning) {
                 transform.x += (e.clientX - lastMouse.x);
                 transform.y += (e.clientY - lastMouse.y);
@@ -1073,6 +1148,7 @@
              }
              
              draggedNode = null;
+             draggedAttractor = null;
              draggedConnectedNodes = [];
              isPanning = false;
         });
@@ -1207,38 +1283,14 @@
          }
 
          function highlightSearchResults(foundNodes) {
-             // Reset all nodes to normal appearance
+             // Initial highlight "flash" animation handled by searching
              nodes.forEach(n => {
-                 n.searchHighlight = false;
-                 n.highlightAlpha = 0;
+                 if (foundNodes.some(f => f.id === n.id)) {
+                     n.searchHighlight = true;
+                     n.highlightAlpha = 1.0;
+                 }
              });
-            
-            // Highlight all matching nodes
-            foundNodes.forEach((node, index) => {
-                node.searchHighlight = true;
-                // Staggered highlight effect based on search order
-                node.highlightAlpha = 1.0;
-                node.highlightColor = `hsl(${(index * 30) % 360}, 80%, 60%)`;
-            });
-            
-            // Animate the highlight effect
-            const highlightInterval = setInterval(() => {
-                let allFaded = true;
-                foundNodes.forEach(node => {
-                    if (node.highlightAlpha > 0.1) {
-                        node.highlightAlpha *= 0.85; // Fade out gradually
-                        allFaded = false;
-                    } else {
-                        node.highlightAlpha = 0;
-                        node.searchHighlight = false;
-                    }
-                });
-                
-                if (allFaded) {
-                    clearInterval(highlightInterval);
-                }
-            }, 100);
-        }
+         }
 
          function applyBounceEnergy(node, energyX, energyY) {
              // Apply energy with physics simulation
@@ -1317,6 +1369,121 @@
              } else {
                  return '.';
              }
+         }
+
+         function createSearchAttractor(foundNodes) {
+             // Calculate center point of found nodes
+             const avgX = foundNodes.reduce((sum, n) => sum + n.x, 0) / foundNodes.length;
+             const avgY = foundNodes.reduce((sum, n) => sum + n.y, 0) / foundNodes.length;
+             
+             // Create attractor with high energy - offset to the right as requested
+             searchAttractor = {
+                 x: avgX + 300, // Move to the right of the old colony
+                 y: avgY,
+                 energy: 120, // Slightly stronger attraction
+                 maxEnergy: 120,
+                 radius: 2000,
+                 fadeRate: 0.98,
+                 pulse: 0,
+                 active: true,
+                 foundNodes: foundNodes,
+                 searchNodes: new Set(foundNodes.map(n => n.id))
+             };
+             
+             simulationAlpha = Math.max(simulationAlpha, 0.6);
+             console.log(`🧲 Red Search attractor created at (${searchAttractor.x.toFixed(1)}, ${searchAttractor.y.toFixed(1)})`);
+         }
+
+         function removeSearchAttractor() {
+             if (searchAttractor) {
+                 searchAttractor.active = false;
+             }
+         }
+
+         function updateSearchAttractor() {
+             if (!searchAttractor) return;
+             
+             searchAttractor.pulse += 0.05;
+             
+             if (!searchAttractor.active) {
+                 searchAttractor.energy *= searchAttractor.fadeRate;
+                 if (searchAttractor.energy < 0.5) {
+                     searchAttractor = null;
+                     draggedAttractor = null; // Ensure we stop dragging if it fades
+                     return;
+                 }
+             } else {
+                 searchAttractor.energy = searchAttractor.maxEnergy * (0.9 + Math.sin(searchAttractor.pulse * 2) * 0.1);
+                 if (simulationAlpha < 0.1) simulationAlpha = 0.15;
+             }
+             
+             // If not being dragged, follow the center loosely (slowly)
+             if (!draggedAttractor && searchAttractor && searchAttractor.foundNodes.length > 0) {
+                 let sumX = 0, sumY = 0;
+                 for (const n of searchAttractor.foundNodes) {
+                     sumX += n.x;
+                     sumY += n.y;
+                 }
+                 const avgX = sumX / searchAttractor.foundNodes.length;
+                 const avgY = sumY / searchAttractor.foundNodes.length;
+                 
+                 // Move toward center very slowly (maintain most of the manual offset)
+                 searchAttractor.x += (avgX + 300 - searchAttractor.x) * 0.01;
+                 searchAttractor.y += (avgY - searchAttractor.y) * 0.01;
+             }
+         }
+
+         function drawSearchAttractor() {
+             if (!searchAttractor) return;
+             
+             const alpha = searchAttractor.energy / searchAttractor.maxEnergy;
+             const pulseScale = 1 + Math.sin(searchAttractor.pulse) * 0.2;
+             const radius = 35 * pulseScale / transform.k;
+             
+             ctx.save();
+             
+             // Intense Red Style
+             const color = '#ff4d4d';
+             
+             // Draw outer glow
+             const gradient = ctx.createRadialGradient(
+                 searchAttractor.x, searchAttractor.y, 0,
+                 searchAttractor.x, searchAttractor.y, radius * 3
+             );
+             gradient.addColorStop(0, `rgba(255, 77, 77, ${0.5 * alpha})`);
+             gradient.addColorStop(1, 'rgba(255, 77, 77, 0)');
+             
+             ctx.fillStyle = gradient;
+             ctx.beginPath();
+             ctx.arc(searchAttractor.x, searchAttractor.y, radius * 3, 0, Math.PI * 2);
+             ctx.fill();
+             
+             // Draw core with drag handle indicator
+             ctx.beginPath();
+             ctx.arc(searchAttractor.x, searchAttractor.y, radius, 0, Math.PI * 2);
+             ctx.fillStyle = `rgba(255, 77, 77, ${0.9 * alpha})`;
+             ctx.shadowBlur = 25 * alpha;
+             ctx.shadowColor = color;
+             ctx.fill();
+             
+             // Draw dragging instruction ring
+             ctx.beginPath();
+             ctx.arc(searchAttractor.x, searchAttractor.y, radius * 1.5, 0, Math.PI * 2);
+             ctx.strokeStyle = `rgba(255, 255, 255, ${0.3 * alpha})`;
+             ctx.lineWidth = 1 / transform.k;
+             ctx.setLineDash([5, 5]);
+             ctx.stroke();
+             ctx.setLineDash([]);
+             
+             // Label it as Draggable
+             if (transform.k > 0.5) {
+                 ctx.fillStyle = '#ffffff';
+                 ctx.font = `${12 / transform.k}px Arial`;
+                 ctx.textAlign = 'center';
+                 ctx.fillText('DRAG RED ENERGY', searchAttractor.x, searchAttractor.y - radius - (10/transform.k));
+             }
+             
+             ctx.restore();
          }
 
          // Search functionality moved to main search listener

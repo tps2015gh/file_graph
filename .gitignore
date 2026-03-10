@@ -17,3 +17,4 @@ _obj/
 # Logs
 logs/*
 !logs/.gitkeep
+files.log
