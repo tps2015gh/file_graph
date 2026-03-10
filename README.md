@@ -1,13 +1,23 @@
-# File Graph Visualizer (Star Colony)
+## Deployment
 
-**Latest Update**: 2026-03-10 - UI Optimization & Performance Enhancements
+To deploy this application to another folder or machine, you **MUST** copy both the executable and the web UI file:
 
-A standalone Go web application to scan directories, extract file metadata, calculate similarity embeddings (26D Vector Space), and visualize relationships as an interactive 2D interactive graph.
+1.  **The Executable**: `file_graph.exe` (or the timestamped version like `file_graph_260310_2215.exe`)
+2.  **The UI File**: `index.html` (**CRITICAL**: The server will not start without this file in the same directory!)
 
-**The Tales Behind the Code**: 
-- **Cosmic Journey**: Read the magical creation story in [taleTheTravelOfMagicAndMath.md](taleTheTravelOfMagicAndMath.md)
-- **Future Predictions**: Explore AI-human destiny predictions in [taleStoryPredictWhatWillComeInVectorSpace.md](taleStoryPredictWhatWillComeInVectorSpace.md)
-- **ภาษาไทย**: อ่านนิทานทำนายอนาคตในภาษาไทย [taleStoryPredictWhatWillComeInVectorSpace_TH.md](taleStoryPredictWhatWillComeInVectorSpace_TH.md)
+### Quick Deploy Steps
+1. Create a new folder (e.g., `C:\Apps\FileGraph`).
+2. Copy your compiled `.exe` into that folder.
+3. Copy `index.html` into that same folder.
+4. Run the `.exe` from its new location.
+
+**Automation Tool**: Use the included `deploy.bat` to quickly copy the latest build:
+```bash
+# Example usage:
+deploy.bat "C:\MyDestFolder"
+```
+
+---
 
 ## Build & Compilation Requirements
 
