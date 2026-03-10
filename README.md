@@ -68,9 +68,23 @@ This program treats the filesystem as a high-dimensional universe where files ar
 
 ## Screenshots
 
+![Red Energy Search Attractor](_doc/Screenshot 2026-03-10 220442.png)
+
+*The new **Red Energy** attractor pulling search results into a separate "Star Colony" for better visibility.*
+
 ![File Graph Visualizer](_doc/Screenshot-2026-03-10-000725.png)
 
 ![File Graph with Controls](_doc/Screenshot-2026-03-10-004132.png)
+
+## New Features (Update 2026-03-10)
+
+### 🔴 Red Energy Search Attractor (Vortex)
+When you search for files, a high-density **Red Energy Vortex** is created:
+- **Automatic Offset**: Initially spawns 300px to the right of the results center, separating search matches from the main "old colony."
+- **Draggable Gravity**: You can manually click and drag the **RED ENERGY** vortex anywhere on the canvas to pull the search results with it.
+- **Dynamic Physics**: Features a pulsing visual effect and a "swirl" vortex force that organizes results as they approach the center.
+- **Persistent Red Labels**: All search matches are highlighted in **Bold Red** and always display their filename labels, even at high zoom or when other nodes are selected.
+- **High Visibility**: Search results maintain 100% opacity, ensuring they never fade out when inspecting other nodes.
 
 ## Getting Started
 1. Clone the repository.
