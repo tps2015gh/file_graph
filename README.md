@@ -206,5 +206,20 @@ Search should copy **all matching files** to clipboard. If not working, check br
 ### 🎯 Why some files seem visually "far apart" but connected?
 Visual distance ≠ semantic similarity. Files can be semantically close while visually separated.
 
+### 🚫 Why do I get "404 Page Not Found" when copying URLs?
+This is a **single-page application (SPA)** that serves everything from the root path `/`.
+
+**Proper URL patterns:**
+- ✅ `http://localhost:8080/` - Works correctly
+- ❌ `http://localhost:8080/index.html` - Will show 404
+- ❌ `http://localhost:8080/subpage` - Will show 404
+
+**Why this happens:**
+- The Go server serves `index.html` for all unmatched routes
+- Browser routers expect SPA behavior at root level
+- Direct file access URLs are not supported
+
+**Solution:** Always use the root URL (`http://localhost:8080/`)
+
 ## License
 Distributed under the **MIT License**. See `LICENSE` for more information.
