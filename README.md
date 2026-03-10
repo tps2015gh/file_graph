@@ -1,5 +1,7 @@
 # File Graph Visualizer (Star Colony)
 
+**Latest Update**: 2026-03-10 - UI Optimization & Performance Enhancements
+
 A standalone Go web application to scan directories, extract file metadata, calculate similarity embeddings (26D Vector Space), and visualize relationships as an interactive 2D interactive graph.
 
 ## Build & Compilation Requirements
