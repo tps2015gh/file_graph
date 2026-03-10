@@ -20,7 +20,20 @@ var (
 	FilesScannedMu   sync.RWMutex
 	MaxFilesInMemory = 5000
 	BatchSize        = 1000
+
+	cachedNodes []models.FileNode
+	cacheMu     sync.RWMutex
 )
+
+// GetCachedNodes safely retrieves the nodes from the last scan.
+func GetCachedNodes() ([]models.FileNode, error) {
+	cacheMu.RLock()
+	defer cacheMu.RUnlock()
+	// Return a copy to prevent race conditions if the caller modifies the slice
+	nodesCopy := make([]models.FileNode, len(cachedNodes))
+	copy(nodesCopy, cachedNodes)
+	return nodesCopy, nil
+}
 
 func SetScannerLimits(maxFiles, batch int) {
 	if maxFiles > 0 {
@@ -30,6 +43,7 @@ func SetScannerLimits(maxFiles, batch int) {
 		BatchSize = batch
 	}
 }
+
 
 func GetScannerStats() (maxFiles, batch, scanned int) {
 	FilesScannedMu.RLock()
@@ -122,6 +136,11 @@ func ScanDirectory(root string) ([]models.FileNode, error) {
 
 		return nil
 	})
+
+	// Cache the results
+	cacheMu.Lock()
+	cachedNodes = nodes
+	cacheMu.Unlock()
 
 	return nodes, err
 }

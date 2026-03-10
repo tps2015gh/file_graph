@@ -15,6 +15,7 @@ This program treats the filesystem as a high-dimensional universe where files ar
 ### Documentation
 - **Theoretical Concept**: [English](_theory/concept.md#english-version) / [ภาษาไทย](_theory/concept.md#ภาษาไทย)
 - **User Manual & Features**: [English](_doc/manual.md#english-version) / [ภาษาไทย](_doc/manual.md#ภาษาไทย)
+- **Model Context Protocol (MCP)**: [English](MCP_USAGE.md) / [ภาษาไทย](MCP_USAGE_TH.md)
 
 ## Features
 - **26D Embedding Vector**: Extracts size, name, time, and content hash (SHA-256).

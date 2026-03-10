@@ -6,6 +6,7 @@ import (
 	"file_graph/internal/logger"
 	"file_graph/internal/models"
 	"file_graph/internal/scanner"
+	"file_graph/internal/state"
 	"fmt"
 	"net/http"
 	"os"
@@ -13,6 +14,23 @@ import (
 	"path/filepath"
 	"time"
 )
+
+// HandleHighlightedNode checks for a node ID set by the MCP and returns it.
+// The state is cleared after being read to prevent re-highlighting.
+func HandleHighlightedNode(w http.ResponseWriter, r *http.Request) {
+	nodeID, found := state.GlobalState.GetHighlightedNodeID()
+
+	w.Header().Set("Content-Type", "application/json")
+	if !found {
+		// Return an empty object if no node is highlighted
+		json.NewEncoder(w).Encode(map[string]interface{}{})
+		return
+	}
+
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"highlightNodeId": nodeID,
+	})
+}
 
 var StartPath string
 

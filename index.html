@@ -837,6 +837,30 @@
         }
         
         initStartPath();
+
+        // --- MCP HIGHLIGHT POLLING ---
+        async function checkHighlightedNode() {
+            try {
+                const resp = await fetch('/api/highlighted-node');
+                const data = await resp.json();
+                if (data.highlightNodeId) {
+                    const found = nodes.find(n => n.id === data.highlightNodeId);
+                    if (found) {
+                        uiLog(`MCP Highlight: ${found.name}`);
+                        selectNode(found);
+                        // Center view on node
+                        transform.x = (width / 2 - found.x) * transform.k;
+                        transform.y = (height / 2 - found.y) * transform.k;
+                        simulationAlpha = 0.5; // Wake up simulation
+                    }
+                }
+            } catch (e) {
+                // Ignore errors during polling
+            }
+        }
+        
+        // Check for highlighted nodes from MCP every 2 seconds
+        setInterval(checkHighlightedNode, 2000);
     </script>
 </body>
 </html>

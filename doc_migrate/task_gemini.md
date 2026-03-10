@@ -12,4 +12,5 @@ Status: File Graph Visualizer is fully operational on http://localhost:8080.
 - Verified frontend serving.
 
 ## Next Steps
+- Implement MCP (Model Context Protocol) to expose the file graph and scanner to AI models.
 - User to test the visualizer and provide feedback on the "star colony" effects.
