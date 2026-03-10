@@ -1,0 +1,38 @@
+**Release v1.1: File Graph Visualizer - Red Energy Update**
+
+We are pleased to announce the release of **v1.1** of the File Graph Visualizer, featuring the innovative **Red Energy Search Attractor**. This update enhances your ability to explore and understand file relationships by providing a dynamic, draggable visual aid for search results.
+
+**Key Features in v1.1:**
+*   **Red Energy Search Attractor**: A visual, interactive vortex that pulls search result nodes towards it, providing clear visual grouping.
+*   **Enhanced Search Visuals**: Search results are now consistently highlighted in bold red, always display their labels, and maintain full opacity for high visibility.
+*   **Improved Documentation**: Updated `README.md` with new features, screenshots, deployment instructions, and a detailed theoretical explanation of the Red Energy Gravity in both English and Thai.
+*   **Simplified Deployment**: A new `deploy.bat` script is included to automate copying the necessary files for easy deployment.
+
+**Included in this release package, you will find:**
+*   `file_graph_server.exe` (or similar timestamped executable)
+*   `index.html` (the essential web UI file)
+
+***Disclaimer:*** *This software is provided "as is," without any guarantee, express or implied, including but not limited to the warranties of merchantability, fitness for a particular purpose, and non-infringement. In no event shall the authors or copyright holders be liable for any claim, damages, or other liability. Use of this software is at your own risk.*
+
+Please test this release and provide any feedback.
+
+
+---
+
+**เผยแพร่เวอร์ชัน 1.1: โปรแกรมแสดงภาพกราฟไฟล์ - การอัปเดตพลังงานสีแดง**
+
+เรายินดีที่จะประกาศการเผยแพร่เวอร์ชัน **1.1** ของโปรแกรมแสดงภาพกราฟไฟล์ ซึ่งมาพร้อมกับคุณสมบัติใหม่ **ตัวดึงดูดการค้นหาพลังงานสีแดง (Red Energy Search Attractor)** นวัตกรรมนี้ช่วยเพิ่มความสามารถในการสำรวจและทำความเข้าใจความสัมพันธ์ของไฟล์โดยการนำเสนอตัวช่วยแสดงภาพแบบไดนามิกและลากได้สำหรับผลการค้นหา
+
+**คุณสมบัติหลักในเวอร์ชัน 1.1:**
+*   **ตัวดึงดูดการค้นหาพลังงานสีแดง**: น้ำวนภาพแบบโต้ตอบที่ดึงโหนดผลการค้นหาเข้าหากัน ทำให้เกิดการจัดกลุ่มภาพที่ชัดเจน
+*   **การแสดงผลการค้นหาที่ได้รับการปรับปรุง**: ผลการค้นหาจะถูกเน้นด้วยสีแดงเข้มอย่างสม่ำเสมอ แสดงป้ายกำกับเสมอ และรักษาความทึบแสงเต็มที่เพื่อการมองเห็นที่ชัดเจน
+*   **เอกสารประกอบที่ได้รับการปรับปรุง**: อัปเดตไฟล์ `README.md` พร้อมคุณสมบัติใหม่ ภาพหน้าจอ คำแนะนำในการปรับใช้ และคำอธิบายทางทฤษฎีโดยละเอียดเกี่ยวกับแรงโน้มถ่วงพลังงานสีแดงทั้งในภาษาอังกฤษและภาษาไทย
+*   **การปรับใช้ที่ง่ายขึ้น**: มีสคริปต์ `deploy.bat` ใหม่รวมอยู่ด้วยเพื่อทำให้การคัดลอกไฟล์ที่จำเป็นสำหรับการปรับใช้ง่ายขึ้นโดยอัตโนมัติ
+
+**ในแพ็คเกจเผยแพร่นี้ คุณจะพบ:**
+*   `file_graph_server.exe` (หรือไฟล์ปฏิบัติการที่มีการประทับเวลาที่คล้ายกัน)
+*   `index.html` (ไฟล์ UI เว็บที่จำเป็น)
+
+***ข้อจำกัดความรับผิดชอบ:*** *ซอฟต์แวร์นี้จัดทำขึ้น "ตามสภาพ" โดยไม่มีการรับประกันใด ๆ ไม่ว่าโดยชัดแจ้งหรือโดยนัย รวมถึงแต่ไม่จำกัดเพียงการรับประกันความสามารถในการซื้อขาย ความเหมาะสมสำหรับวัตถุประสงค์เฉพาะ และการไม่ละเมิดลิขสิทธิ์ ไม่ว่าในกรณีใด ๆ ผู้เขียนหรือผู้ถือลิขสิทธิ์จะไม่รับผิดชอบต่อการเรียกร้อง ค่าเสียหาย หรือความรับผิดอื่นใด การใช้ซอฟต์แวร์นี้เป็นความเสี่ยงของคุณเอง*
+
+โปรดทดสอบเวอร์ชันนี้และให้ข้อเสนอแนะใด ๆ
