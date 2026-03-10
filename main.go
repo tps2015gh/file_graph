@@ -111,6 +111,7 @@ func main() {
 	http.HandleFunc("/api/progress", handlers.HandleProgress)
 	http.HandleFunc("/api/shutdown", handlers.HandleShutdown)
 	http.HandleFunc("/api/kill", handlers.HandleHardExit)
+	http.HandleFunc("/api/filelog", handlers.HandleFileLog)
 
 	webURL := fmt.Sprintf("http://localhost:%s", *port)
 	apiURL := fmt.Sprintf("http://localhost:%s/api", *port)

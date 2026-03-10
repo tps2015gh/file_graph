@@ -699,11 +699,18 @@
                   searchStatus.style.color = '#a6e3a1'; // Green
                   uiLog(`Search Found: ${term} -> ${foundNodes.length} matches`);
                   
-                  // Copy ALL paths to clipboard
-                  const allPaths = foundNodes.map(n => n.path).join('\n');
-                  navigator.clipboard.writeText(allPaths).then(() => {
-                      console.log(`${foundNodes.length} paths copied to clipboard`);
-                  });
+              // Copy ALL paths to clipboard
+              const allPaths = foundNodes.map(n => n.path).join('\n');
+              navigator.clipboard.writeText(allPaths).then(() => {
+                  console.log(`${foundNodes.length} paths copied to clipboard`);
+              });
+              
+              // Log search to files.log
+              fetch('/api/filelog', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ type: 'search', query: term })
+              });
                   
                   // Select first node but highlight all
                   selectNode(foundNodes[0]);
@@ -973,6 +980,13 @@
                   uiLog(`Copied: ${n.path}`);
               }).catch(err => {
                   console.error('Clipboard copy failed:', err);
+              });
+              
+              // Log node click to files.log
+              fetch('/api/filelog', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ type: 'click', path: n.path })
               });
              
              // Update bottom display

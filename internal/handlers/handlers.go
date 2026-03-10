@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -145,4 +146,52 @@ func HandleHardExit(w http.ResponseWriter, r *http.Request) {
 		time.Sleep(1 * time.Second)
 		os.Exit(1) // Exit code 1 signals STOP to the batch file
 	}()
+}
+
+func HandleFileLog(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req struct {
+		Type  string `json:"type"`
+		Path  string `json:"path"`
+		Query string `json:"query,omitempty"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	// Create or append to files.log
+	logFile, err := os.OpenFile("files.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		http.Error(w, "Cannot open log file", http.StatusInternalServerError)
+		return
+	}
+	defer logFile.Close()
+
+	timestamp := time.Now().Format("2006-01-02 15:04:05")
+	logLine := ""
+
+	switch req.Type {
+	case "search":
+		logLine = fmt.Sprintf("%s #Search [%s]\n", timestamp, req.Query)
+	case "click":
+		logLine = fmt.Sprintf("%s %s\n", timestamp, req.Path)
+	default:
+		http.Error(w, "Invalid type", http.StatusBadRequest)
+		return
+	}
+
+	if _, err := logFile.WriteString(logLine); err != nil {
+		http.Error(w, "Cannot write to log file", http.StatusInternalServerError)
+		return
+	}
+
+	logger.Printf("FILE_LOG: %s logged", req.Type)
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("Logged"))
 }
