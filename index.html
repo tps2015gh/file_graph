@@ -995,29 +995,7 @@
                   // Hide bottom display
                   document.getElementById('selected-node-info').style.display = 'none';
               }
-         });
-
-             if (found) {
-                 uiLog(`Select Node: ${found.name}`);
-                 // Calm the simulation - don't add energy
-                 simulationAlpha = Math.min(simulationAlpha, 0.3);
-                 draggedNode = found;
-                 
-                 // Find all connected nodes to drag together
-                 draggedConnectedNodes = findConnectedNodes(found);
-                 uiLog(`Dragging ${draggedConnectedNodes.length + 1} nodes together`);
-                 
-                 selectNode(found);
-              } else {
-                 isPanning = true;
-                 simulationAlpha = 0.1;
-                 lastMouse = { x: e.clientX, y: e.clientY };
-                 selectedNode = null;
-                 detailsPanel.style.display = 'none';
-                 // Hide bottom display
-                 document.getElementById('selected-node-info').style.display = 'none';
-             }
-        });
+          });
 
          window.addEventListener('mousemove', (e) => {
              if (draggedNode) {
