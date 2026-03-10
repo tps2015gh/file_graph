@@ -149,13 +149,16 @@
         <button id="scan-btn">Scan Files</button>
         <button id="restart-btn" style="background:#f9e2af; color:#11111b; margin-left:10px;">Restart</button>
         <button id="kill-btn" style="background:#f38ba8; color:#11111b; margin-left:5px;">Kill Server</button>
-    </header>
+     </header>
 
-    <main>
-        <div id="canvas-container">
-            <canvas id="graph-canvas"></canvas>
-        </div>
-        <div id="details-panel">
+     <main>
+         <div style="position: absolute; top: 50px; left: 10px; font-size: 0.7rem; color: #6c7086; z-index: 10;">
+             <span id="server-status">Server: Checking...</span>
+         </div>
+         <div id="canvas-container">
+             <canvas id="graph-canvas"></canvas>
+         </div>
+         <div id="details-panel">
             <div class="node-info" id="node-info">
                 <p>Select a node to see details</p>
             </div>
