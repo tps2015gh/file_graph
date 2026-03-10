@@ -37,6 +37,13 @@ Red Energy nodes are elevated to a higher visual tier in the rendering pipeline:
 - **Label Persistence**: Labels are forced to render regardless of global optimization settings (like `nodeCount < 100`), ensuring immediate identification.
 - **Opacity Lock**: Opacity is maintained at `1.0` even when other nodes are selected, preventing search results from fading into the background.
 
+## 4. Vortex Visualization (UI Display)
+The gravity source is rendered as a multi-layered aesthetic element:
+- **Core Singularity**: A solid `#ff4d4d` circle with a `25px` shadow blur, representing the densest part of the energy field.
+- **Interaction Ring**: A white dashed circle (`setLineDash([5, 5])`) at $1.5R$ radius, signaling to the user that the element is "Grabable" and interactive.
+- **Atmospheric Glow**: A radial gradient starting from $50\%$ red opacity at the center to $0\%$ at $3R$, creating a volumetric "atmosphere" for the attractor.
+- **Dynamic Feedback**: A textual indicator `DRAG RED ENERGY` is anchored above the core whenever the user is zoomed in enough ($k > 0.5$) to facilitate immediate UX understanding.
+
 ---
 
 ### Author Signature
