@@ -46,7 +46,7 @@ GOOS=linux GOARCH=amd64 go build -o file_graph_server main.go
 GOOS=darwin GOARCH=arm64 go build -o file_graph_server main.go
 ```
 ## ความเห็นของฉันเกี่ยวกับ โปรเจคนี้ 
-[ภาษาไทย โปรเจคนี้ และคณิตศาสตร์เบื้องหลัง AI ](_/my_oppinion.md)
+[ภาษาไทย โปรเจคนี้ และคณิตศาสตร์เบื้องหลัง AI / My Oppinion about math behide AI ](/my_oppinion.md)
 
 ## Project Roles & Direction
 - **Lead Programmer & Director**: The User
